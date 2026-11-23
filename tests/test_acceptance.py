@@ -438,3 +438,23 @@ def test_no_stage_numbers_suggesting_a_fixed_order(page):
     assert page.locator("nav.stages a .ic svg").count() == 11
     body = page.evaluate("(() => { const c = document.body.cloneNode(true); c.querySelectorAll('script').forEach(s => s.remove()); return c.textContent; })()")
     assert not _re.search(r"\b[Ss]tages? \d+", body)
+
+
+def test_page_contacts_no_other_host_and_fonts_load(base_url):
+    from urllib.parse import urlparse
+    host = urlparse(base_url).netloc
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        pg = b.new_page()
+        hosts = set()
+        pg.on("request", lambda r: hosts.add(urlparse(r.url).netloc) if r.url.startswith("http") else None)
+        for stage in STAGE_ORDER + ["save"]:
+            pg.goto(base_url + "#" + stage)
+            pg.wait_for_selector(f"#s-{stage}:not([hidden])")
+        pg.evaluate("document.fonts.ready")
+        assert hosts == {host}, hosts
+        for fam in ["16px 'Atkinson Hyperlegible'", "700 16px 'Atkinson Hyperlegible'", "16px 'IBM Plex Mono'", "600 16px Newsreader"]:
+            assert pg.evaluate(f"document.fonts.check(\"{fam}\")"), fam
+        loaded = pg.evaluate("[...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/\"/g, ''))")
+        assert {"Atkinson Hyperlegible", "IBM Plex Mono", "Newsreader"} <= set(loaded)
+        b.close()

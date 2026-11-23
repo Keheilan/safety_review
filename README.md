@@ -27,6 +27,10 @@ Acceptance tests run the page in a real browser with Playwright:
 
 For fictional or de-identified cases only. Nothing is sent or stored by the page. A review leaves the browser only when the user copies it out.
 
+The page loads nothing from other sites: its fonts are served from this repository (`fonts/`), and there are no analytics, trackers or external scripts. An automated test checks that every request the page makes goes to its own site. The site is hosted on GitHub Pages, which, like any web host, receives the visitor's IP address when the page is requested.
+
+The fonts (Atkinson Hyperlegible, IBM Plex Mono, Newsreader) are licensed under the SIL Open Font License 1.1; the license texts are in `fonts/`.
+
 ## Methods
 
 The tool follows quality improvement methods described by the Institute for Healthcare Improvement (QI Essentials Toolkit: cause and effect diagram, flowchart, FMEA, driver diagram, run chart) and the RCA² approach to root cause analysis. All wording is original. This project is not affiliated with or endorsed by IHI.
