@@ -167,3 +167,13 @@ def test_conditions_panel_shows_what_the_analysis_adds(page):
     assert "A named role escalates again" in panel
     text = report_text(page)
     assert text.index("What the conditions analysis adds") < text.index("Executive summary")
+
+
+def test_collapsed_responsibility_boxes_show_their_result(page):
+    go(page, "ownership")
+    lines = page.locator("#duty-dims .dim-line").all_inner_texts()
+    assert lines[0] == "2 mismatches · 2 conflicts · escalation: Not defined when the resident is in theatre"
+    assert lines[1].startswith("not yet answered")
+    box = page.locator("#duty-dims details").first
+    assert box.evaluate("d => d.open") is False
+    assert box.bounding_box()["height"] < 80

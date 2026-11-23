@@ -164,6 +164,10 @@ fieldset.picks legend { font-size: .88rem; font-weight: 700; padding: 0 4px; }
 .chip.trace { background: var(--trace-soft); border-color: var(--trace); color: var(--trace); }
 details.more { border: 1px dashed var(--line); border-radius: var(--r); padding: 6px 10px; }
 details.more > summary { cursor: pointer; font-weight: 700; font-size: .88rem; color: var(--accent); }
+details.more:not([open]) { display: block; }
+details.dim-box { background: var(--surface); border-style: solid; padding: 10px 14px; }
+details.dim-box > summary { display: list-item; }
+details.dim-box .dim-line { display: block; font-weight: 400; color: var(--muted); font-size: .85rem; margin: 2px 0 0 1.1em; }
 details.more[open] { display: grid; gap: 10px; padding-bottom: 10px; }
 .cond-line { font-size: .9rem; display: grid; gap: 2px; }
 .cond-line .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
@@ -782,6 +786,13 @@ function dutyStatus(d) {
   const conflictText = conflicts.length ? "Conflicting: " + conflicts.map(r => r.name + (claims[r.id] === "theirs" ? " was expected to act but believed it was another role's" : " claimed it but was not expected to act")).join("; ") : "";
   return { k, label, cls, conflictText, incomplete };
 }
+function dutyMismatches(d) {
+  const dims = d.dims || {}, out = [];
+  S.roles.forEach(r => { const v = dims[r.id]; if (!v) return;
+    if (v.expected === "yes" && v.capacity === "no") out.push({ r, k: "expected to act but could not" });
+    else if (v.capacity === "yes" && (v.expected === "no" || v.expected === "unknown")) out.push({ r, k: "could act but was " + (v.expected === "no" ? "not expected to" : "not clearly expected to") }); });
+  return out;
+}
 function unclaimed() { return S.duties.filter(d => ["disclaimed", "uncertain"].includes(dutyStatus(d).k)); }
 function condById(id) { return S.conditions.find(c => c.id === id) || null; }
 function condStatusLabel(c) { return (COND_STATUS[c.status] || ["Unknown", ""])[0]; }
@@ -1093,10 +1104,16 @@ function renderDutyDims() {
   const opt = (v, cur, label) => '<option value="' + v + '"' + (cur === v ? " selected" : "") + ">" + label + "</option>";
   S.duties.forEach(d => {
     d.dims = d.dims || {};
-    const det = el('<details class="panel more"><summary></summary><div class="row"><label>Decision authority <span class="hint">who could decide</span><input data-f="authority"></label><label>Escalation arrangement<input data-f="escalation"></label></div><div class="scroll-x"><table class="duty"></table></div></details>');
+    const det = el('<details class="more dim-box"><summary><span class="dim-title"></span><span class="dim-line"></span></summary><div class="row"><label>Decision authority <span class="hint">who could decide</span><input data-f="authority"></label><label>Escalation arrangement<input data-f="escalation"></label></div><div class="scroll-x"><table class="duty"></table></div></details>');
     if (openDuties.has(d.id)) det.open = true;
     det.addEventListener("toggle", () => { det.open ? openDuties.add(d.id) : openDuties.delete(d.id); });
-    det.querySelector("summary").textContent = "Capacity, expectation and accountability: " + d.name;
+    det.querySelector(".dim-title").textContent = "Capacity, expectation and accountability: " + d.name;
+    const st = dutyStatus(d), mm = dutyMismatches(d), nConf = st.conflictText ? st.conflictText.split("; ").length : 0;
+    const answered = S.roles.filter(r => d.dims[r.id] && Object.values(d.dims[r.id]).some(Boolean)).length;
+    const bits = answered ? [plural2(mm.length, "mismatch", "mismatches"), plural2(nConf, "conflict", "conflicts")] : ["not yet answered"];
+    if (st.incomplete) bits.push(plural2(st.incomplete, "role", "roles") + " not asked what they believed");
+    bits.push(d.escalation ? "escalation: " + (d.escalation.length > 50 ? d.escalation.slice(0, 48) + "…" : d.escalation) : "escalation not recorded");
+    det.querySelector(".dim-line").textContent = bits.join(" · ");
     det.querySelectorAll("input[data-f]").forEach(inp => { inp.value = d[inp.dataset.f] || ""; inp.setAttribute("aria-label", inp.dataset.f + ": " + d.name); inp.addEventListener("input", () => { d[inp.dataset.f] = inp.value; }); });
     const roles = S.roles;
     det.querySelector("table").innerHTML = "<thead><tr><th>Role</th><th>Believed it was</th>" + DIMS.map(x => "<th>" + esc(x[1]) + "</th>").join("") + "</tr></thead><tbody>" + roles.map(r => {
@@ -1698,9 +1715,7 @@ function conditionsAdds() {
     d: procOpen.length ? procOpen.map(x => "Step " + stepNo(x.s.id) + " (" + fmtTime(x.s.t) + ", " + roleName(x.s.role) + " to " + roleName(x.s.to) + "): " + x.open.map(c => c.required.charAt(0).toLowerCase() + c.required.slice(1)).join("; ")).join(" · ") : "None recorded.",
     why: "A standard review usually counts an acknowledged handoff as done. Here, procedural completion is kept separate from whether the receiving role could do its job." });
   const gaps = [];
-  S.duties.forEach(d => { const dims = d.dims || {}; S.roles.forEach(r => { const v = dims[r.id]; if (!v) return;
-    if (v.expected === "yes" && v.capacity === "no") gaps.push({ d, r, k: "expected to act but could not" });
-    else if (v.capacity === "yes" && (v.expected === "no" || v.expected === "unknown")) gaps.push({ d, r, k: "could act but was " + (v.expected === "no" ? "not expected to" : "not clearly expected to") }); }); });
+  S.duties.forEach(d => dutyMismatches(d).forEach(m => gaps.push({ d, r: m.r, k: m.k })));
   const byDuty = [...new Set(gaps.map(g => g.d))];
   items.push({ n: gaps.length, href: "#ownership", t: "Roles whose capacity to act and expectation to act did not match",
     d: gaps.length ? byDuty.map(d => d.name + ": " + gaps.filter(g => g.d === d).map(g => g.r.name + " " + g.k).join("; ")).join(" · ") : "None recorded. Open a responsibility in stage 4 to record capacity and expectation for each role.",
