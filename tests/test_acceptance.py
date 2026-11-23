@@ -325,7 +325,7 @@ def test_sidebar_collapses_to_an_icon_rail(page):
     assert page.locator("#side").bounding_box()["width"] < 90
     assert page.locator(".content").bounding_box()["width"] > before + 120
     # labels stay available to assistive technology in the rail
-    assert page.locator('nav.stages a[href="#ownership"]').get_attribute("title") == "4. Shared responsibilities"
+    assert page.locator('nav.stages a[href="#ownership"]').get_attribute("title") == "Shared responsibilities"
     assert "Shared responsibilities" in page.text_content('nav.stages a[href="#ownership"]')
     page.reload(); page.wait_for_selector("nav.stages a[aria-current=page]")
     assert page.evaluate("document.body.classList.contains('rail')")
@@ -429,3 +429,12 @@ def test_small_screen_drawer(base_url):
         assert pg.inner_text("#menu-label") == "Measure"
         assert errors == []
         b.close()
+
+
+def test_no_stage_numbers_suggesting_a_fixed_order(page):
+    import re as _re
+    side = page.inner_text("#side")
+    assert not _re.search(r"\d+\s*\n?\s*(Event|Timeline|Swimlanes|Causes|Summary)\b", side)
+    assert page.locator("nav.stages a .ic svg").count() == 11
+    body = page.evaluate("(() => { const c = document.body.cloneNode(true); c.querySelectorAll('script').forEach(s => s.remove()); return c.textContent; })()")
+    assert not _re.search(r"\b[Ss]tages? \d+", body)
