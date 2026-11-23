@@ -168,6 +168,17 @@ details.more[open] { display: grid; gap: 10px; padding-bottom: 10px; }
 .cond-line { font-size: .9rem; display: grid; gap: 2px; }
 .cond-line .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
 .diff li { font-size: .9rem; }
+/* what the conditions analysis adds */
+.adds { border: 1px solid var(--trace); border-left: 4px solid var(--trace); border-radius: var(--r); background: var(--surface); padding: 14px 16px; display: grid; gap: 10px; }
+.adds h3, .adds h2 { color: var(--trace); margin: 0; }
+.adds .why { font-size: .88rem; color: var(--muted); }
+.adds ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.adds li { display: grid; grid-template-columns: 3.2rem 1fr; gap: 10px; align-items: start; }
+.adds .n { font-family: var(--f-mono); font-size: 1.6rem; line-height: 1; color: var(--trace); text-align: right; }
+.adds .t { font-weight: 700; }
+.adds .d { font-size: .88rem; color: var(--muted); }
+.adds a { color: inherit; text-decoration: none; }
+.adds a:hover .t { text-decoration: underline; }
 /* run chart */
 .chart-frame { overflow-x: auto; }
 .chart-frame text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
@@ -268,6 +279,7 @@ a { color: var(--accent); }
       <label for="ev-unknowns">Unknown or disputed conditions<input id="ev-unknowns"></label>
     </div>
   </details>
+  <div class="adds" id="adds-event"></div>
   <div class="summary-grid" id="overview"></div>
 </section>
 
@@ -797,7 +809,7 @@ let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTi
 
 // ---------- render all ----------
 function renderAll() {
-  renderEvent(); renderRoles(); renderOverview(); renderStepForm(); renderSteps(); renderVersions(); renderConditions(); renderLanes(); renderDuties();
+  renderEvent(); renderRoles(); renderOverview(); renderAdds(); renderStepForm(); renderSteps(); renderVersions(); renderConditions(); renderLanes(); renderDuties();
   renderCauses(); renderStatements(); renderFailures(); renderDrivers(); renderActions(); renderRunInputs(); renderRun(); renderSummary();
   $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title ? (S.event.title.length > 48 ? S.event.title.slice(0, 46) + "…" : S.event.title) : "Untitled review") + "</span>";
 }
@@ -1094,7 +1106,7 @@ function renderDutyDims() {
     det.querySelectorAll("select").forEach(sel => sel.addEventListener("change", () => {
       const rid = sel.dataset.r; d.dims[rid] = d.dims[rid] || {};
       if (sel.value) d.dims[rid][sel.dataset.k] = sel.value; else delete d.dims[rid][sel.dataset.k];
-      renderDuties(); renderOverview(); renderSignals();
+      renderDuties(); renderOverview(); renderSignals(); renderAdds();
     }));
     box.appendChild(det);
   });
@@ -1678,6 +1690,39 @@ function renderRun() {
   $("run-signals").innerHTML = sig.length ? sig.map(s => '<span class="chip ok">' + (s.k === "shift" ? "Shift" : "Trend") + ": " + esc(pts[s.from][0]) + " to " + esc(pts[s.to][0]) + (s.dir > 0 ? (s.k === "shift" ? ", above the median" : ", going up") : (s.k === "shift" ? ", below the median" : ", going down")) + "</span>").join("") : '<span class="chip">No shift or trend yet</span>';
 }
 
+// ---------- what the conditions analysis adds (calculated from the team's entries) ----------
+function conditionsAdds() {
+  const steps = sortedSteps(), items = [];
+  const procOpen = steps.filter(s => s.to && s.ack === "yes").map(s => ({ s, open: S.conditions.filter(c => (c.refs || []).includes("handoff:" + s.id) && c.resolution !== "resolved" && c.status !== "present") })).filter(x => x.open.length);
+  items.push({ n: procOpen.length, href: "#lanes", t: "Handoffs acknowledged on paper while a required condition stayed unresolved",
+    d: procOpen.length ? procOpen.map(x => "Step " + stepNo(x.s.id) + " (" + fmtTime(x.s.t) + ", " + roleName(x.s.role) + " to " + roleName(x.s.to) + "): " + x.open.map(c => c.required.charAt(0).toLowerCase() + c.required.slice(1)).join("; ")).join(" · ") : "None recorded.",
+    why: "A standard review usually counts an acknowledged handoff as done. Here, procedural completion is kept separate from whether the receiving role could do its job." });
+  const gaps = [];
+  S.duties.forEach(d => { const dims = d.dims || {}; S.roles.forEach(r => { const v = dims[r.id]; if (!v) return;
+    if (v.expected === "yes" && v.capacity === "no") gaps.push({ d, r, k: "expected to act but could not" });
+    else if (v.capacity === "yes" && (v.expected === "no" || v.expected === "unknown")) gaps.push({ d, r, k: "could act but was " + (v.expected === "no" ? "not expected to" : "not clearly expected to") }); }); });
+  const byDuty = [...new Set(gaps.map(g => g.d))];
+  items.push({ n: gaps.length, href: "#ownership", t: "Roles whose capacity to act and expectation to act did not match",
+    d: gaps.length ? byDuty.map(d => d.name + ": " + gaps.filter(g => g.d === d).map(g => g.r.name + " " + g.k).join("; ")).join(" · ") : "None recorded. Open a responsibility in stage 4 to record capacity and expectation for each role.",
+    why: "A standard review often asks who should have acted. Separating who could act from who was expected to act shows structural gaps instead of individual blame." });
+  const ne = S.conditions.filter(c => c.status === "not_established"), rne = receiptNotEstablished(), ane = ackUnknown();
+  items.push({ n: ne.length + rne.length + ane.length, href: "#lanes", t: "Findings recorded as not established rather than as failures",
+    d: [ne.length ? plural2(ne.length, "condition", "conditions") + " (" + ne.map(c => c.required.charAt(0).toLowerCase() + c.required.slice(1)).join("; ") + ")" : "", rne.length ? plural2(rne.length, "handoff", "handoffs") + " with receipt not established" : "", ane.length ? plural2(ane.length, "handoff", "handoffs") + " with acknowledgment not established" : ""].filter(Boolean).join(" · ") || "None recorded.",
+    why: "Where no evidence exists either way, the finding stays an open question instead of becoming a conclusion." });
+  const unaddressed = S.conditions.filter(c => ["absent", "changed", "not_established", "disputed"].includes(c.status) && c.resolution !== "resolved" && !condLinks(c).actions.length);
+  items.push({ n: unaddressed.length, href: "#lanes", t: "Unresolved conditions with a discrepancy but no action",
+    d: unaddressed.length ? unaddressed.map(c => c.required + " (" + ({ absent: "documented absent", changed: "changed during the event", not_established: "not established", disputed: "disputed" }[c.status] || "") + ")").join(" · ") : "Every unresolved discrepancy has at least one action.",
+    why: "A review can meet its measured goal while a required condition is still missing. These conditions are not covered by any action or measure of success." });
+  return items;
+}
+function plural2(n, one, many) { return n + " " + (n === 1 ? one : many); }
+function addsHtml(tag, links) {
+  const items = conditionsAdds();
+  return "<" + tag + ">What the conditions analysis adds</" + tag + '><p class="why">Findings a standard event review usually does not separate, calculated from the team\'s entries. Each line points to the records behind it.</p><ul>' +
+    items.map(it => { const inner = '<span class="n">' + it.n + '</span><span><span class="t">' + esc(it.t) + '</span><br><span class="d">' + esc(it.d) + '</span><br><span class="d"><i>' + esc(it.why) + "</i></span></span>"; return "<li>" + (links ? '<a href="' + it.href + '" style="display:contents">' + inner + "</a>" : inner) + "</li>"; }).join("") + "</ul>";
+}
+function renderAdds() { const b = $("adds-event"); if (b) b.innerHTML = addsHtml("h3", true); }
+
 // ---------- stage 10: summary (built only from the team's entries) ----------
 function fmtVal(m, v) { return v == null ? "–" : (Math.round(v * 10) / 10) + (m && m.percent ? "%" : ""); }
 function measureSummary(m) {
@@ -1707,6 +1752,7 @@ function renderSummary() {
   const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
   let h = "";
   h += '<header><p class="eyebrow">ICA Safety Improvement Review</p><h1>' + esc(S.event.title || "Untitled review") + '</h1><p class="sub">' + esc(S.event.setting || "") + (S.event.setting ? " · " : "") + "Generated from the review data · Fictional or de-identified data only</p></header>";
+  h += '<section class="adds">' + addsHtml("h2", false) + "</section>";
 
   // Executive summary
   h += "<section><h2>Executive summary</h2>";
@@ -1743,7 +1789,7 @@ function renderSummary() {
     const fLines = [];
     if (S.event.intended) fLines.push("Intended: " + S.event.intended + (S.event.outcome ? ". Recorded outcome: " + S.event.outcome : ""));
     steps.filter(s => s.to && s.ack === "yes").forEach(s => {
-      const open = S.conditions.filter(c => (c.refs || []).some(r => r === "handoff:" + s.id || r === "step:" + s.id) && c.resolution !== "resolved" && c.status !== "present");
+      const open = S.conditions.filter(c => (c.refs || []).includes("handoff:" + s.id) && c.resolution !== "resolved" && c.status !== "present");
       if (open.length) fLines.push("Step " + stepNo(s.id) + " (" + roleName(s.role) + " to " + roleName(s.to) + ") was acknowledged, so the handoff was procedurally complete, but " + open.map(c => c.required.charAt(0).toLowerCase() + c.required.slice(1)).join("; ") + " remained unresolved. Acknowledgment alone does not show the receiving role could perform the intended function.");
     });
     h += "<h3>D. Functional consequences</h3>" + (fLines.length ? "<ul>" + fLines.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul>" : '<p class="note">No procedural completions with unresolved conditions recorded.</p>');

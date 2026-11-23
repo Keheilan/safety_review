@@ -156,3 +156,14 @@ def test_old_review_files_still_load(page, base_url):
     assert page.inner_text("#load-msg") == "Review loaded."
     assert page.evaluate("icaReviewData().conditions.length") == 0
     assert "Executive summary" in report_text(page)
+
+
+def test_conditions_panel_shows_what_the_analysis_adds(page):
+    panel = page.inner_text("#adds-event")
+    assert "What the conditions analysis adds" in panel
+    assert "Step 7 (19:00, Day nurse to Night nurse)" in panel and "Step 2 (15:20" not in panel
+    assert "On-call surgical resident expected to act but could not" in panel
+    assert "Charge nurse could act but was not clearly expected to" in panel
+    assert "A named role escalates again" in panel
+    text = report_text(page)
+    assert text.index("What the conditions analysis adds") < text.index("Executive summary")
