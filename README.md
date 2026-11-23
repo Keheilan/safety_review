@@ -4,7 +4,15 @@ A guided review of a patient-safety event that runs entirely in the browser.
 
 It builds role swimlanes from a timeline, shows handoffs and the steps that waited on others, surfaces hidden assumptions and responsibilities that no role believed were theirs, and supports cause and effect analysis, causal statements, failure modes and effects analysis (FMEA) on the same steps and handoffs, a driver diagram, an action plan grouped by strength, and run charts that mark when each action's test started. Every action can be traced back to the findings it came from and forward to its measured result.
 
+Process conditions record what had to be true for the work to function, what was observed, and the evidence, using six provisional process domains. Missing evidence is reported as "not established", never as a confirmed failure. A condition can be traced across several steps, linked to actions, drivers, failure modes and measures, and summarized in the report's conditions analysis. Saved workflow versions let a revised timeline be compared with the original without overwriting it.
+
 Live page: https://keheilan.github.io/safety_review/
+
+## Tests
+
+Acceptance tests run the page in a real browser with Playwright:
+
+    python -m pytest tests/test_acceptance.py -q
 
 ## Privacy
 

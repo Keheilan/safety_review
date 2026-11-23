@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Guided patient-safety event review with role swimlanes, hidden assumptions, cause and effect, FMEA, driver diagram, actions, run charts and a summary report. For fictional or de-identified cases only.">
+<meta name="description" content="Guided patient-safety event review with role swimlanes, process conditions, hidden assumptions, cause and effect, FMEA, driver diagram, actions, run charts and a summary report. For fictional or de-identified cases only.">
 <title>ICA Safety Review</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +25,8 @@
   --gap-soft: #f6dcd8;
   --ok: #2f7a45;
   --ok-soft: #dcefe1;
+  --trace: #6a4bb0;
+  --trace-soft: #ece6f8;
   --lane-a: #f2f4f1;
   --lane-b: #e9ece8;
   --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
@@ -35,11 +37,11 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #141b1d; --surface: #1b2427; --sunk: #222d30; --ink: #e4ebea; --muted: #9aa9aa; --line: #34423f;
   --accent: #6fc0c7; --accent-soft: #1f3a3d; --assume: #e3a54a; --assume-soft: #3a2e1b; --gap: #ef8a7d; --gap-soft: #3d2420;
-  --ok: #7cc994; --ok-soft: #1e3526; --lane-a: #192225; --lane-b: #1e282b; color-scheme: dark } }
+  --ok: #7cc994; --ok-soft: #1e3526; --trace: #b9a1ee; --trace-soft: #2c2540; --lane-a: #192225; --lane-b: #1e282b; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #141b1d; --surface: #1b2427; --sunk: #222d30; --ink: #e4ebea; --muted: #9aa9aa; --line: #34423f;
   --accent: #6fc0c7; --accent-soft: #1f3a3d; --assume: #e3a54a; --assume-soft: #3a2e1b; --gap: #ef8a7d; --gap-soft: #3d2420;
-  --ok: #7cc994; --ok-soft: #1e3526; --lane-a: #192225; --lane-b: #1e282b; color-scheme: dark }
+  --ok: #7cc994; --ok-soft: #1e3526; --trace: #b9a1ee; --trace-soft: #2c2540; --lane-a: #192225; --lane-b: #1e282b; color-scheme: dark }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -102,7 +104,7 @@ ul.plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; }
 .tally { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface); display: grid; gap: 2px; }
 .tally .n { font-family: var(--f-mono); font-size: 1.6rem; line-height: 1.1; }
-.tally.assume .n { color: var(--assume); } .tally.gap .n { color: var(--gap); } .tally.accent .n { color: var(--accent); }
+.tally.assume .n { color: var(--assume); } .tally.gap .n { color: var(--gap); } .tally.accent .n { color: var(--accent); } .tally.trace .n { color: var(--trace); }
 .tally .k { font-size: 0.85rem; color: var(--muted); }
 
 /* swimlane */
@@ -123,6 +125,8 @@ table.duty th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0
 table.duty select { padding: 4px 6px; font-size: 0.85rem; min-width: 128px; }
 table.duty .chip { white-space: normal; }
 table.duty td:first-child { min-width: 180px; }
+#duty-table td:nth-last-child(2) { min-width: 300px; }
+#duty-table td:nth-last-child(2) .chip { display: inline-block; margin: 0 4px 4px 0; }
 .scroll-x { overflow-x: auto; }
 
 /* fishbone */
@@ -156,6 +160,14 @@ fieldset.picks legend { font-size: .88rem; font-weight: 700; padding: 0 4px; }
 .rpn { font-family: var(--f-mono); font-weight: 500; }
 .trace { font-size: .85rem; border-top: 1px dashed var(--line); padding-top: 6px; display: grid; gap: 4px; }
 .trace b { font-weight: 700; }
+/* conditions */
+.chip.trace { background: var(--trace-soft); border-color: var(--trace); color: var(--trace); }
+details.more { border: 1px dashed var(--line); border-radius: var(--r); padding: 6px 10px; }
+details.more > summary { cursor: pointer; font-weight: 700; font-size: .88rem; color: var(--accent); }
+details.more[open] { display: grid; gap: 10px; padding-bottom: 10px; }
+.cond-line { font-size: .9rem; display: grid; gap: 2px; }
+.cond-line .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+.diff li { font-size: .9rem; }
 /* run chart */
 .chart-frame { overflow-x: auto; }
 .chart-frame text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
@@ -245,6 +257,17 @@ a { color: var(--accent); }
       </div>
     </div>
   </div>
+  <details class="panel more" id="ev-conds">
+    <summary>Process conditions at the start (optional)</summary>
+    <p class="muted" style="font-size:.88rem">What the process was meant to achieve and the conditions it was working under. Record what is known; mark the rest as unknown rather than guessing.</p>
+    <label for="ev-intended">Intended outcome of the process <span class="hint">what it was supposed to accomplish</span><textarea id="ev-intended" rows="2"></textarea></label>
+    <label for="ev-onset">Operating conditions when the event began <span class="hint">demand, staffing, pressures</span><textarea id="ev-onset" rows="2"></textarea></label>
+    <label for="ev-constraints">Known constraints<textarea id="ev-constraints" rows="2"></textarea></label>
+    <div class="row">
+      <label for="ev-evidence">Evidence source<input id="ev-evidence" placeholder="e.g. record review and interviews"></label>
+      <label for="ev-unknowns">Unknown or disputed conditions<input id="ev-unknowns"></label>
+    </div>
+  </details>
   <div class="summary-grid" id="overview"></div>
 </section>
 
@@ -264,7 +287,11 @@ a { color: var(--accent); }
       <label for="st-what">What did they do or notice? <span class="hint" id="st-what-hint">Describe it as it actually happened, not as it should have</span><input id="st-what" required></label>
       <div class="row">
         <label for="st-to">Did they hand anything to another role?<select id="st-to"></select></label>
-        <label for="st-ack">Was the handoff acknowledged?<select id="st-ack"><option value="unknown">Not known</option><option value="yes">Yes, confirmed back</option><option value="no">No</option></select></label>
+        <label for="st-ack">Was the handoff acknowledged?<select id="st-ack"><option value="unknown">Not established: no evidence either way</option><option value="yes">Yes, confirmed back</option><option value="no">No: documented as not acknowledged</option></select></label>
+      </div>
+      <div class="row">
+        <label for="st-transfer">What was handed over? <span class="hint">information or responsibility</span><input id="st-transfer"></label>
+        <label for="st-ackev">Evidence of acknowledgment <span class="hint">optional</span><input id="st-ackev" placeholder="e.g. call log, signed handover sheet"></label>
       </div>
       <label for="st-wait">Did this step receive a handoff, or wait on an earlier step? <span class="hint">pick that step; it links the two in the swimlanes</span><select id="st-wait"></select></label>
       <label for="st-belief">What did they believe was true at that moment? <span class="hint">e.g. "The resident had already seen the result"</span><textarea id="st-belief" rows="2"></textarea></label>
@@ -275,6 +302,13 @@ a { color: var(--accent); }
       <div class="item-head"><h3>Steps in time order</h3><span class="muted" id="step-count"></span></div>
       <ul class="plain" id="step-list"></ul>
     </div>
+  </div>
+  <div class="panel">
+    <h3>Workflow versions</h3>
+    <p class="muted" style="font-size:.88rem">Save the timeline as it stands before revising it, for example after interviews. Saved versions are never overwritten, so a revised workflow can be compared with the original.</p>
+    <div class="row"><label for="ver-label">Version name<input id="ver-label" placeholder="e.g. After interviews"></label><button type="button" id="ver-save">Save this version</button></div>
+    <ul class="plain" id="ver-list"></ul>
+    <div id="ver-diff"></div>
   </div>
 </section>
 
@@ -288,21 +322,50 @@ a { color: var(--accent); }
     <span><svg width="24" height="16"><rect x="1" y="3" width="22" height="10" rx="5" fill="var(--accent)"></rect></svg>Start or end</span>
     <span><svg width="18" height="18"><circle cx="9" cy="9" r="6" fill="var(--accent)"></circle><circle cx="9" cy="9" r="8.5" fill="none" stroke="var(--assume)" stroke-width="1.6" stroke-dasharray="3 2"></circle></svg>Unchecked assumption</span>
     <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--accent)" stroke-width="1.6"></line></svg>Acknowledged handoff</span>
-    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--gap)" stroke-width="1.6" stroke-dasharray="5 3"></line></svg>Handoff not acknowledged</span>
+    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--gap)" stroke-width="1.6" stroke-dasharray="5 3"></line></svg>Documented as not acknowledged</span>
+    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--assume)" stroke-width="1.6" stroke-dasharray="2 3"></line></svg>Acknowledgment not established</span>
     <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1.5 3"></line></svg>Waited on (no handoff)</span>
-    <span><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="none" stroke="var(--gap)" stroke-width="1.6" stroke-dasharray="2.5 2"></circle><text x="10" y="14" text-anchor="middle" style="font-size:11px" fill="var(--gap)">?</text></svg>No step recorded as receiving the handoff</span>
+    <span><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="none" stroke="var(--gap)" stroke-width="1.6" stroke-dasharray="2.5 2"></circle><text x="10" y="14" text-anchor="middle" style="font-size:11px" fill="var(--gap)">?</text></svg>Receipt not established: no step records taking it</span>
   </div>
+  <div class="row" style="align-items:end"><label for="trace-select" style="max-width:640px">Trace a process condition across the timeline<select id="trace-select"></select></label></div>
   <div class="lane-frame" id="lane-frame"></div>
   <div class="cols">
     <div class="panel detail" id="step-detail"><p class="muted">Select a step in the swimlanes.</p></div>
     <div class="panel"><h3>Signals in this timeline</h3><ul class="plain" id="signal-list"></ul></div>
+  </div>
+  <div class="cols">
+    <div class="panel">
+      <h3>Process conditions</h3>
+      <p class="muted" style="font-size:.88rem">A process condition is something that had to be true for the work to do its job, such as "the responsible nurse receives the result". Record what was required, what was observed, and the evidence. Missing evidence is recorded as <b>not established</b>, which is different from a condition documented as absent.</p>
+      <ul class="plain" id="cond-list"></ul>
+    </div>
+    <form class="panel" id="cond-form" autocomplete="off">
+      <h3 id="cond-form-title">Add a process condition</h3>
+      <label for="cond-domain">Process domain <span class="hint">provisional analysis category</span><select id="cond-domain"></select></label>
+      <label for="cond-required">Required condition <span class="hint">what had to be true for the work to function</span><input id="cond-required" required></label>
+      <label for="cond-observed">Observed condition <span class="hint">what the review found</span><textarea id="cond-observed" rows="2"></textarea></label>
+      <div class="row">
+        <label for="cond-status">Status<select id="cond-status"></select></label>
+        <label for="cond-evstatus">Evidence<select id="cond-evstatus"></select></label>
+      </div>
+      <label for="cond-evidence">Evidence details <span class="hint">source and what it shows</span><input id="cond-evidence"></label>
+      <fieldset class="picks"><legend>Where it applies <span class="hint">steps, handoffs, responsibilities; several to trace it across the timeline</span></legend><div id="cond-refs" class="pick-list tall"></div></fieldset>
+      <div class="row">
+        <label for="cond-at" style="flex:0 1 160px">Observed at<input id="cond-at" placeholder="e.g. 16:55–19:00"></label>
+        <label for="cond-res" style="flex:0 1 200px">Resolved?<select id="cond-res"><option value="unresolved">Unresolved</option><option value="resolved">Resolved</option><option value="unknown">Not known</option></select></label>
+        <label for="cond-resnote">How or when <span class="hint">optional</span><input id="cond-resnote"></label>
+      </div>
+      <label for="cond-interp">Reviewer interpretation <span class="hint">kept separate from the observation</span><textarea id="cond-interp" rows="2"></textarea></label>
+      <label for="cond-question">Open question <span class="hint">what is still unknown</span><input id="cond-question"></label>
+      <div class="row"><button type="submit" id="cond-save">Add condition</button><button type="button" class="quiet" id="cond-cancel" hidden>Cancel editing</button></div>
+    </form>
   </div>
 </section>
 
 <!-- 4 OWNERSHIP -->
 <section class="stage" id="s-ownership" data-stage="ownership" hidden>
   <div><p class="eyebrow">Stage 4</p><h2>Shared responsibilities</h2></div>
-  <p class="lede">List the tasks that more than one role touches. Then ask each role: did you believe this was yours, or another role's? A task nobody believed was theirs is an unclaimed step. Unclaimed steps often sit at the centre of an event and rarely show up in a single person's account.</p>
+  <p class="lede">List the tasks that more than one role touches. Then ask each role: did you believe this was yours, or another role's? A task nobody believed was theirs is an unclaimed step. Unclaimed steps often sit at the centre of an event and rarely show up in a single person's account. Open a responsibility below to record three further questions separately for each role: could it act, was it expected to act, and would it have to answer for the result. Unanswered questions are shown as incomplete, never as proof that nobody was responsible.</p>
   <div class="panel">
     <div class="scroll-x"><table class="duty" id="duty-table"></table></div>
     <div class="row">
@@ -310,6 +373,7 @@ a { color: var(--accent); }
       <button id="duty-add" type="button">Add</button>
     </div>
   </div>
+  <div id="duty-dims" style="display:grid;gap:10px"></div>
 </section>
 
 <!-- 5 CAUSES -->
@@ -338,6 +402,9 @@ a { color: var(--accent); }
       <label for="stmt-cause">Because…<textarea id="stmt-cause" rows="2" required></textarea></label>
       <label for="stmt-effect">…this happened…<textarea id="stmt-effect" rows="2" required></textarea></label>
       <label for="stmt-event">…which increased the likelihood of…<input id="stmt-event" required></label>
+      <label for="stmt-cond">Process condition it concerns <span class="hint">optional</span><select id="stmt-cond"></select></label>
+      <label for="stmt-evidence">Evidence for the discrepancy<input id="stmt-evidence" placeholder="e.g. call log, record entry, interview"></label>
+      <label for="stmt-uncert">Alternative explanations or uncertainty<input id="stmt-uncert"></label>
       <div class="lint" id="stmt-lint" aria-live="polite"></div>
       <div class="row"><button type="submit">Add statement</button></div>
     </form>
@@ -362,7 +429,13 @@ a { color: var(--accent); }
       <label for="fm-causes">Why would it happen?<textarea id="fm-causes" rows="2"></textarea></label>
       <label for="fm-effects">What would the consequences be?<textarea id="fm-effects" rows="2"></textarea></label>
     </div>
+    <label for="fm-cond">Required condition it would weaken <span class="hint">optional</span><select id="fm-cond"></select></label>
     <fieldset class="picks"><legend>Roles affected</legend><div id="fm-roles" class="pick-list"></div></fieldset>
+    <div class="row">
+      <label for="fm-safe">Existing safeguards<input id="fm-safe"></label>
+      <label for="fm-down">Related downstream processes<input id="fm-down"></label>
+    </div>
+    <label for="fm-resid">Residual uncertainties<input id="fm-resid"></label>
     <div class="row">
       <label for="fm-occ" style="flex:0 1 150px">Occurrence 1–10<input id="fm-occ" type="number" min="1" max="10" step="1"></label>
       <label for="fm-det" style="flex:0 1 150px">Detection 1–10<input id="fm-det" type="number" min="1" max="10" step="1"></label>
@@ -392,6 +465,7 @@ a { color: var(--accent); }
       <label for="drv-text">Driver<input id="drv-text" required placeholder="e.g. Critical results reach the nurse responsible for the patient"></label>
       <fieldset class="picks" id="drv-parents-wrap"><legend>Influences these primary drivers <span class="hint">one or more</span></legend><div id="drv-parents" class="pick-list"></div></fieldset>
       <fieldset class="picks"><legend>Comes from these findings <span class="hint">optional, one or more</span></legend><div id="drv-sources" class="pick-list tall"></div></fieldset>
+      <fieldset class="picks"><legend>Process conditions it is meant to influence <span class="hint">optional</span></legend><div id="drv-conds" class="pick-list"></div></fieldset>
       <div class="row"><button type="submit" id="drv-save">Add driver</button><button type="button" class="quiet" id="drv-cancel" hidden>Cancel editing</button></div>
     </form>
     <div class="panel"><h3>Drivers</h3><ul class="plain" id="drv-list"></ul></div>
@@ -405,11 +479,12 @@ a { color: var(--accent); }
   <div class="strength" id="tiers"></div>
   <div class="cols">
     <form class="panel" id="act-form" autocomplete="off">
-      <h3>Add an action</h3>
+      <h3 id="act-form-title">Add an action</h3>
       <label for="act-stmt">Addresses causal statement<select id="act-stmt"></select></label>
       <label for="act-type">Type of action<select id="act-type"></select></label>
       <label for="act-text">Action <span class="hint">a change idea to test</span><textarea id="act-text" rows="2" required></textarea></label>
       <fieldset class="picks"><legend>Secondary drivers it is meant to move <span class="hint">from the driver diagram; one or more</span></legend><div id="act-drivers" class="pick-list"></div></fieldset>
+      <fieldset class="picks"><legend>Process conditions it is meant to change <span class="hint">every action should name at least one</span></legend><div id="act-conds" class="pick-list"></div></fieldset>
       <div class="row">
         <label for="act-owner">Responsible role<input id="act-owner" placeholder="e.g. Nurse manager"></label>
         <label for="act-due" style="flex:0 1 170px">Target date<input id="act-due" type="date"></label>
@@ -419,7 +494,23 @@ a { color: var(--accent); }
         <label for="act-start" style="flex:0 1 170px">Test starts at <span class="hint">a data point, e.g. Wk 7</span><input id="act-start" placeholder="Wk 7"></label>
       </div>
       <label for="act-measure-new" id="act-measure-new-wrap" hidden>Name of the new measure<input id="act-measure-new" placeholder="e.g. % critical results acknowledged within 30 minutes"></label>
-      <div class="row"><button type="submit">Add action</button></div>
+      <details class="more"><summary>Conditions and consequences (optional)</summary>
+        <label for="act-baseline">Baseline condition<input id="act-baseline"></label>
+        <label for="act-expected">Expected functional improvement<input id="act-expected"></label>
+        <label for="act-capacity">Operational capacity it requires<input id="act-capacity"></label>
+        <label for="act-newdeps">New dependencies it creates<input id="act-newdeps"></label>
+        <label for="act-unintended">Possible unintended consequences<input id="act-unintended"></label>
+      </details>
+      <details class="more"><summary>Test record (optional)</summary>
+        <p class="muted" style="font-size:.85rem">A record of who proposed, authorized and reviewed the test and what happened. The tool stores these answers; it makes no authorization decision.</p>
+        <div class="row"><label for="act-proposedby">Proposed by (role)<input id="act-proposedby"></label><label for="act-authby">Authorized by (role)<input id="act-authby"></label></div>
+        <label for="act-limits">Limits that applied <span class="hint">scope, duration</span><input id="act-limits"></label>
+        <label for="act-executed">What was actually done<input id="act-executed"></label>
+        <label for="act-changes">Conditions that changed during the test<input id="act-changes"></label>
+        <label for="act-consequences">Consequences observed<input id="act-consequences"></label>
+        <div class="row"><label for="act-reviewedby">Reviewed by (role)<input id="act-reviewedby"></label><label for="act-decision">Recorded decision<select id="act-decision"><option value="pending">Pending review</option><option value="approved">Adopted</option><option value="revised">Revised</option><option value="declined">Declined</option></select></label></div>
+      </details>
+      <div class="row"><button type="submit" id="act-save">Add action</button><button type="button" class="quiet" id="act-cancel" hidden>Cancel editing</button></div>
     </form>
     <div class="panel"><h3>Action plan</h3><ul class="plain" id="act-list"></ul></div>
   </div>
@@ -449,6 +540,19 @@ a { color: var(--accent); }
       <label for="run-goal" style="flex:0 1 180px">Goal <span class="hint">optional</span><input id="run-goal" type="number" step="any"></label>
       <label class="row" style="align-items:center;gap:8px;font-weight:400;flex:1 1 260px" for="run-pct"><input id="run-pct" type="checkbox" style="width:auto"> This measure is a percentage (keep the scale within 0 to 100)</label>
     </div>
+    <div class="row">
+      <label for="run-type" style="flex:0 1 220px">Type of measure<select id="run-type"><option value="process">Process measure</option><option value="outcome">Outcome measure</option><option value="balancing">Balancing measure</option><option value="condition">Condition-specific measure</option></select></label>
+      <label for="run-cond">Process condition it tracks <span class="hint">optional</span><select id="run-cond"></select></label>
+    </div>
+    <div class="row">
+      <label for="run-num">Numerator<input id="run-num"></label>
+      <label for="run-den">Denominator or unit<input id="run-den"></label>
+    </div>
+    <div class="row">
+      <label for="run-window" style="flex:0 1 200px">Observation window<input id="run-window" placeholder="e.g. weekly"></label>
+      <label for="run-source">Data source<input id="run-source"></label>
+    </div>
+    <label for="run-limits">Limitations<input id="run-limits"></label>
     <label for="run-data">Data points in time order, one per line as "label, value"<textarea id="run-data" rows="8" class="mono"></textarea></label>
     <label for="run-notes">Outside events that may have affected the process, one per line as "label, note" <span class="hint">tests of change come from the actions in stage 8</span><textarea id="run-notes" rows="3" class="mono"></textarea></label>
     <div class="row"><button type="button" id="run-apply">Update chart</button><button type="button" class="danger" id="run-del">Delete this measure</button></div>
@@ -492,7 +596,8 @@ a { color: var(--accent); }
     <h3>About this tool</h3>
     <p>This is an early prototype built on the ICA Project Cloud model: each role is a workstream with its own lane, a shared responsibility is a constraint several workstreams touch, and handoffs are exchanges across lane boundaries. A review shows where independently organized work met and failed to connect.</p>
     <p>The methods follow quality improvement tools described by the Institute for Healthcare Improvement (cause and effect diagram, flowchart and run chart, from the QI Essentials Toolkit) and the RCA² approach to root cause analysis, including its rules for causal statements and its action hierarchy. All wording here is original. This tool is not affiliated with or endorsed by IHI. The original materials are at <a href="https://www.ihi.org" target="_blank" rel="noopener">ihi.org</a>.</p>
-    <p>The tool records what people tell it. It does not decide root causes, rate anyone's performance, or determine fault.</p>
+    <p>The six process domains used for process conditions (demand and capacity, information integrity, responsibility and decision rights, handoff and dependency continuity, execution and functional completion, adaptation and interruption capacity) are provisional analysis categories for this tool. They are not a validated implementation of ICA theory.</p>
+    <p>The tool records what people tell it. It does not decide root causes, rate anyone's performance, or determine fault. An absent record is reported as "not established", never as proof that something failed.</p>
   </div>
 </section>
 
@@ -514,28 +619,37 @@ const SAMPLE = {
     title: "Delayed treatment of a deteriorating patient after surgery",
     setting: "Adult surgical ward, evening into night",
     summary: "A patient on day 2 after abdominal surgery developed a fever and fast heart rate in the afternoon. A critical lab result was phoned to the ward but did not reach anyone who could act on it. An antibiotic order waited on an allergy question. The patient was treated for sepsis after a rapid response call at night, about seven hours after the first abnormal observations.",
-    outcome: "Transferred to intensive care overnight. Recovered and discharged later."
+    outcome: "Transferred to intensive care overnight. Recovered and discharged later.",
+    intended: "Recognize deterioration after surgery and start appropriate treatment promptly",
+    onset: "Afternoon on day 2 after surgery; usual ward staffing; one on-call resident covering theatre and the ward",
+    constraints: "Critical results are phoned to the unit phone; the escalation policy names only the on-call resident",
+    evidenceSource: "Record review and interviews with the roles involved (fictional)",
+    unknowns: "Whether the day nurse saw the ward board before handover"
   },
   roles: [
     { id: "r1", name: "Day nurse" }, { id: "r2", name: "Charge nurse" }, { id: "r3", name: "On-call surgical resident" },
     { id: "r4", name: "Laboratory" }, { id: "r5", name: "Pharmacy" }, { id: "r6", name: "Night nurse" }, { id: "r7", name: "Rapid response team" }
   ],
   steps: [
-    { id: "s1", role: "r1", t: 850, kind: "start", what: "Recorded temperature 38.4 °C and heart rate 112; early warning score rose", to: "r3", ack: "unknown", wait: "", belief: "The resident reviewed this patient at noon and already knows about the trend", checked: "no" },
-    { id: "s2", role: "r3", t: 920, what: "Saw the page after leaving theatre; ordered lactate and blood cultures by phone", to: "r4", ack: "yes", wait: "s1", belief: "The nurse will call again if the patient gets worse", checked: "no" },
-    { id: "s3", role: "r3", t: 935, what: "Ordered an antibiotic", to: "r5", ack: "unknown", wait: "s2", belief: "Pharmacy will verify the order quickly", checked: "no" },
-    { id: "s4", role: "r5", t: 1010, kind: "decision", what: "Can the antibiotic be released with the allergy recorded as it is? No: order held, because the record listed penicillin without a reaction type", to: "r1", ack: "no", wait: "s3", belief: "The ward will page the prescriber about the allergy", checked: "no" },
-    { id: "s5", role: "r4", t: 1010, what: "Lactate result 3.8 mmol/L; phoned the critical result to the ward", to: "r2", ack: "yes", wait: "s2", belief: "The person answering the phone will pass it to the patient's nurse", checked: "no" },
-    { id: "s6", role: "r2", t: 1015, what: "Took the critical result call and wrote it on the ward board", to: "r1", ack: "no", wait: "s5", belief: "The day nurse will see the board", checked: "no" },
-    { id: "s7", role: "r1", t: 1140, what: "Gave handover to the night nurse; lactate and held antibiotic not mentioned", to: "r6", ack: "yes", wait: "", belief: "The lactate had already been acted on", checked: "no" },
-    { id: "s8", role: "r6", t: 1300, what: "Found blood pressure 84/50 and the patient confused; called the rapid response team", to: "r7", ack: "yes", wait: "", belief: "", checked: "unknown" },
-    { id: "s9", role: "r7", t: 1310, what: "Assessed the patient and started sepsis treatment", to: "r3", ack: "yes", wait: "s8", belief: "", checked: "unknown" },
+    { id: "s1", transfer: "Abnormal observations and early warning score", ackEvidence: "", role: "r1", t: 850, kind: "start", what: "Recorded temperature 38.4 °C and heart rate 112; early warning score rose", to: "r3", ack: "unknown", wait: "", belief: "The resident reviewed this patient at noon and already knows about the trend", checked: "no" },
+    { id: "s2", transfer: "Lactate and blood culture orders", ackEvidence: "Orders received by the laboratory system", role: "r3", t: 920, what: "Saw the page after leaving theatre; ordered lactate and blood cultures by phone", to: "r4", ack: "yes", wait: "s1", belief: "The nurse will call again if the patient gets worse", checked: "no" },
+    { id: "s3", transfer: "Antibiotic order", ackEvidence: "", role: "r3", t: 935, what: "Ordered an antibiotic", to: "r5", ack: "unknown", wait: "s2", belief: "Pharmacy will verify the order quickly", checked: "no" },
+    { id: "s4", transfer: "Allergy question", ackEvidence: "", role: "r5", t: 1010, kind: "decision", what: "Can the antibiotic be released with the allergy recorded as it is? No: order held, because the record listed penicillin without a reaction type", to: "r1", ack: "no", wait: "s3", belief: "The ward will page the prescriber about the allergy", checked: "no" },
+    { id: "s5", transfer: "Critical lactate result 3.8 mmol/L", ackEvidence: "Laboratory call log records the call as taken", role: "r4", t: 1010, what: "Lactate result 3.8 mmol/L; phoned the critical result to the ward", to: "r2", ack: "yes", wait: "s2", belief: "The person answering the phone will pass it to the patient's nurse", checked: "no" },
+    { id: "s6", transfer: "Critical lactate result, via the ward board", ackEvidence: "", role: "r2", t: 1015, what: "Took the critical result call and wrote it on the ward board", to: "r1", ack: "no", wait: "s5", belief: "The day nurse will see the board", checked: "no" },
+    { id: "s7", transfer: "Patient handover", ackEvidence: "Handover sheet signed", role: "r1", t: 1140, what: "Gave handover to the night nurse; lactate and held antibiotic not mentioned", to: "r6", ack: "yes", wait: "", belief: "The lactate had already been acted on", checked: "no" },
+    { id: "s8", transfer: "Rapid response call", ackEvidence: "Rapid response log", role: "r6", t: 1300, what: "Found blood pressure 84/50 and the patient confused; called the rapid response team", to: "r7", ack: "yes", wait: "", belief: "", checked: "unknown" },
+    { id: "s9", transfer: "Treatment started; resident informed", ackEvidence: "", role: "r7", t: 1310, what: "Assessed the patient and started sepsis treatment", to: "r3", ack: "yes", wait: "s8", belief: "", checked: "unknown" },
     { id: "s10", role: "r5", t: 1325, kind: "end", what: "Allergy clarified with the resident; antibiotic released and given", to: "", ack: "unknown", wait: "s9", belief: "", checked: "yes" }
   ],
   duties: [
-    { id: "d1", name: "Acting on the critical lactate result", claims: { r1: "theirs", r2: "theirs", r3: "theirs", r4: "theirs" } },
+    { id: "d1", name: "Acting on the critical lactate result", claims: { r1: "theirs", r2: "theirs", r3: "theirs", r4: "theirs" },
+      authority: "The responsible nurse acts on the result; the resident decides treatment", escalation: "Not defined when the resident is in theatre",
+      dims: { r1: { capacity: "yes", expected: "yes", answerable: "yes" }, r2: { capacity: "yes", expected: "unknown", answerable: "no" }, r3: { capacity: "no", expected: "yes", answerable: "yes" }, r4: { capacity: "no", expected: "no", answerable: "no" } } },
     { id: "d2", name: "Resolving the antibiotic allergy question", claims: { r1: "unsure", r3: "theirs", r5: "theirs" } },
-    { id: "d3", name: "Escalating when the early warning score rises", claims: { r1: "mine", r3: "unsure", r2: "unsure" } }
+    { id: "d3", name: "Escalating when the early warning score rises", claims: { r1: "mine", r3: "unsure", r2: "unsure" },
+      authority: "The resident decides treatment", escalation: "Not defined when the resident is in theatre",
+      dims: { r1: { capacity: "yes", expected: "yes", answerable: "yes" }, r3: { capacity: "no", expected: "yes", answerable: "yes" }, r2: { capacity: "yes", expected: "unknown", answerable: "unknown" } } }
   ],
   categories: ["People", "Methods", "Materials", "Equipment", "Environment"],
   causes: [
@@ -547,36 +661,63 @@ const SAMPLE = {
     { id: "c5", cat: "Environment", text: "Critical results written on a shared ward board" }
   ],
   statements: [
-    { id: "x1", cause: "critical lab results are phoned to whoever answers the unit phone, with no read-back to the nurse responsible for the patient", effect: "the raised lactate did not reach anyone able to act on it for over three hours", event: "delayed treatment of sepsis" },
-    { id: "x2", cause: "the handover template has no field for pending results or held medications", effect: "the night nurse was not told about the lactate or the held antibiotic", event: "delayed treatment of sepsis" }
+    { id: "x1", conditionId: "k1", evidence: "Laboratory call log; photograph of the ward board", uncertainty: "The day nurse may have seen the board and judged the result already handled", cause: "critical lab results are phoned to whoever answers the unit phone, with no read-back to the nurse responsible for the patient", effect: "the raised lactate did not reach anyone able to act on it for over three hours", event: "delayed treatment of sepsis" },
+    { id: "x2", conditionId: "k1", evidence: "Signed handover sheet with no pending items listed", uncertainty: "", cause: "the handover template has no field for pending results or held medications", effect: "the night nurse was not told about the lactate or the held antibiotic", event: "delayed treatment of sepsis" }
   ],
   actions: [
-    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measureId: "m1", start: "Wk 7", drivers: ["q1", "q2"] },
-    { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measureId: "m2", start: "Wk 9", drivers: ["q3", "q2"] },
-    { id: "a3", stmt: "x1", type: "weaker:Training", text: "Remind staff of the critical result policy at the safety huddle", owner: "Charge nurses", due: "", measureId: "m1", start: "Wk 3", drivers: ["q2"] }
+    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measureId: "m1", start: "Wk 7", drivers: ["q1", "q2"], conditions: ["k1"],
+      detail: { baseline: "Receipt by the responsible nurse not established", expected: "The responsible nurse receives and acknowledges each critical result", capacity: "A phone assigned to every nurse at the start of each shift", newDeps: "Phone assignment and network coverage", unintended: "Alert fatigue; results missed if a phone is unassigned" },
+      test: { proposedBy: "Laboratory director", authorizedBy: "Patient safety committee", limits: "One ward, 8 weeks", executed: "Results sent to the nurse's phone from week 7", changes: "Some phones unassigned at shift start in week 8", consequences: "Acknowledgment rose; occasional duplicate alerts", reviewedBy: "Ward quality team", decision: "pending" } },
+    { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measureId: "m2", start: "Wk 9", drivers: ["q3", "q2"], conditions: ["k1"] },
+    { id: "a3", stmt: "x1", type: "weaker:Training", text: "Remind staff of the critical result policy at the safety huddle", owner: "Charge nurses", due: "", measureId: "m1", start: "Wk 3", drivers: ["q2"], conditions: ["k1"] }
   ],
   aim: { text: "Raise to 90% the share of critical results acknowledged by the responsible nurse within 30 minutes on the surgical ward, by week 12", measureId: "m1" },
   drivers: [
-    { id: "p1", level: "primary", text: "Critical results reach the nurse responsible for the patient", parents: [], measureId: "m1", sources: ["statement:x1", "cause:c1", "duty:d1", "failure:f1"] },
+    { id: "p1", level: "primary", text: "Critical results reach the nurse responsible for the patient", parents: [], measureId: "m1", conditions: ["k1"], sources: ["statement:x1", "cause:c1", "duty:d1", "failure:f1"] },
     { id: "p2", level: "primary", text: "Pending results and held medications survive handover", parents: [], measureId: "m2", sources: ["statement:x2", "cause:c2", "failure:f2"] },
     { id: "q1", level: "secondary", text: "Results are routed to the responsible nurse, not the unit phone", parents: ["p1"], measureId: "", sources: ["cause:c1", "handoff:s6"] },
-    { id: "q2", level: "secondary", text: "Receipt is confirmed back to whoever handed it over", parents: ["p1", "p2"], measureId: "", sources: ["handoff:s6", "handoff:s7", "assumption:s5"] },
+    { id: "q2", level: "secondary", text: "Receipt is confirmed back to whoever handed it over", parents: ["p1", "p2"], measureId: "", conditions: ["k1"], sources: ["handoff:s6", "handoff:s7", "assumption:s5"] },
     { id: "q3", level: "secondary", text: "Handover lists every pending result and held medication", parents: ["p2"], measureId: "m2", sources: ["cause:c2", "assumption:s7"] }
   ],
   failures: [
-    { id: "f1", target: "handoff:s5", mode: "Critical result taken by someone not caring for the patient", causes: "Results are phoned to whoever answers the unit phone", effects: "Result not acted on; treatment delayed", roles: ["r4", "r2", "r1"], occ: 7, det: 6, sev: 8, actions: ["a1"] },
-    { id: "f2", target: "handoff:s7", mode: "Pending results not mentioned at handover", causes: "Handover template has no field for pending items", effects: "Incoming nurse unaware of an abnormal result", roles: ["r1", "r6"], occ: 6, det: 7, sev: 7, actions: ["a2"] },
-    { id: "f3", target: "step:s4", mode: "Order held without the prescriber being told", causes: "No defined route for allergy questions", effects: "First antibiotic dose delayed", roles: ["r5", "r3", "r1"], occ: 4, det: 6, sev: 7, actions: [] },
-    { id: "f4", target: "duty:d3", mode: "Rising early warning score not escalated again", causes: "Unclear who escalates when the resident is in theatre", effects: "Deterioration recognized late", roles: ["r1", "r3", "r2"], occ: 5, det: 5, sev: 9, actions: [] }
+    { id: "f1", conditionId: "k1", safeguards: "Laboratory phones again if no action within an hour (not reliably done)", residual: "Whether nights differ from days", downstream: "Antibiotic timing; escalation", target: "handoff:s5", mode: "Critical result taken by someone not caring for the patient", causes: "Results are phoned to whoever answers the unit phone", effects: "Result not acted on; treatment delayed", roles: ["r4", "r2", "r1"], occ: 7, det: 6, sev: 8, actions: ["a1"] },
+    { id: "f2", conditionId: "k1", safeguards: "None recorded", residual: "", downstream: "Night-shift escalation", target: "handoff:s7", mode: "Pending results not mentioned at handover", causes: "Handover template has no field for pending items", effects: "Incoming nurse unaware of an abnormal result", roles: ["r1", "r6"], occ: 6, det: 7, sev: 7, actions: ["a2"] },
+    { id: "f3", conditionId: "k3", safeguards: "Pharmacist may phone the ward", residual: "", downstream: "First antibiotic dose", target: "step:s4", mode: "Order held without the prescriber being told", causes: "No defined route for allergy questions", effects: "First antibiotic dose delayed", roles: ["r5", "r3", "r1"], occ: 4, det: 6, sev: 7, actions: [] },
+    { id: "f4", conditionId: "k2", safeguards: "Any nurse may call the rapid response team", residual: "How often the score rises without escalation", downstream: "Rapid response demand", target: "duty:d3", mode: "Rising early warning score not escalated again", causes: "Unclear who escalates when the resident is in theatre", effects: "Deterioration recognized late", roles: ["r1", "r3", "r2"], occ: 5, det: 5, sev: 9, actions: [] }
+  ],
+  conditions: [
+    { id: "k1", domain: "handoff", refs: ["handoff:s5", "handoff:s6", "step:s7", "handoff:s7"], required: "The nurse responsible for the patient receives the critical lactate result and can act on it",
+      observed: "Result phoned to the charge nurse and written on the ward board; receipt by the responsible nurse not established; not passed on at the 19:00 handover", status: "not_established",
+      evStatus: "documented", evidence: "Laboratory call log shows the call at 16:55; no record of read-back to the responsible nurse", at: "16:55–19:00", resolution: "unresolved", resNote: "",
+      interpretation: "The team regards the ward board as an unreliable channel for critical results", question: "Did the day nurse see the board before handover?" },
+    { id: "k2", domain: "responsibility", refs: ["duty:d3", "step:s1"], required: "A named role escalates again if the early warning score keeps rising, including when the resident is in theatre",
+      observed: "No escalation route defined while the resident is in theatre", status: "absent", evStatus: "documented", evidence: "Escalation policy names only the on-call resident", at: "14:10–21:40", resolution: "unresolved", resNote: "", interpretation: "", question: "" },
+    { id: "k3", domain: "information", refs: ["step:s4", "handoff:s4", "duty:d2"], required: "Allergy information is complete enough for pharmacy to verify the antibiotic",
+      observed: "Penicillin allergy recorded without a reaction type", status: "absent", evStatus: "documented", evidence: "Allergy field in the record", at: "16:50", resolution: "resolved", resNote: "Clarified with the resident at 22:05 (step 10)", interpretation: "", question: "" },
+    { id: "k4", domain: "demand", refs: ["step:s2"], required: "The on-call resident can review a ward patient within 30 minutes of a page",
+      observed: "Resident assisting in theatre; page seen about 70 minutes later", status: "changed", evStatus: "reported", evidence: "Resident's account in interview", at: "14:10–15:20", resolution: "unknown", resNote: "", interpretation: "", question: "How often is the resident in theatre when paged?" },
+    { id: "k5", domain: "adaptation", refs: ["step:s8", "step:s9"], required: "Any nurse can call the rapid response team when concerned",
+      observed: "Rapid response call made at 21:40; team arrived within 10 minutes", status: "present", evStatus: "documented", evidence: "Rapid response log", at: "21:40–21:50", resolution: "resolved", resNote: "", interpretation: "", question: "" }
   ],
   measures: [
     { id: "m1", name: "% critical results acknowledged by the responsible nurse within 30 minutes (example data)", percent: true, goal: 90, events: [],
+      type: "process", conditionId: "k1", numerator: "Critical results acknowledged by the responsible nurse within 30 minutes", denominator: "Critical results phoned to the ward", window: "Weekly", source: "Laboratory call log (example data)", limits: "Shows acknowledgment only, not whether appropriate treatment followed",
       points: [["Wk 1",52],["Wk 2",48],["Wk 3",55],["Wk 4",50],["Wk 5",47],["Wk 6",53],["Wk 7",61],["Wk 8",68],["Wk 9",72],["Wk 10",75],["Wk 11",79],["Wk 12",81]] },
     { id: "m2", name: "% handovers that include pending results, audit of 10 per week (example data)", percent: true, goal: 95, events: [["Wk 8","Two weeks of short staffing on the unit"]],
+      type: "process", conditionId: "k1", numerator: "Audited handovers that list every pending result", denominator: "10 audited handovers per week", window: "Weekly", source: "Charge nurse audit (example data)", limits: "Small sample; audited by the unit itself",
       points: [["Wk 1",20],["Wk 2",30],["Wk 3",20],["Wk 4",30],["Wk 5",30],["Wk 6",20],["Wk 7",30],["Wk 8",10],["Wk 9",60],["Wk 10",80],["Wk 11",80],["Wk 12",90]] }
   ]
 };
 
+// The example case keeps the first account given, before interviews, so a revised workflow can be compared with it.
+(function () {
+  const first = clone(SAMPLE);
+  first.steps = first.steps.filter(z => z.id !== "s6");
+  first.steps.forEach(z => { if (z.id === "s5") z.ack = "unknown"; });
+  first.conditions = first.conditions.filter(c => c.id !== "k4").map(c => c.id === "k1" ? Object.assign({}, c, { status: "unknown", evStatus: "none", evidence: "" }) : c);
+  first.duties.forEach(d => { delete d.dims; });
+  SAMPLE.versions = [{ id: "v1", label: "First account, before interviews", savedAt: "2027-01-08", snapshot: first }];
+})();
 // Action types grouped by strength. Paraphrased from the action hierarchy used in RCA².
 const HIERARCHY = {
   stronger: { label: "Stronger actions", note: "Change the system so the error is hard or impossible", types: ["Architectural or physical change", "Forcing function", "Simplify the process", "Standardize equipment or process", "Tangible involvement by leadership"] },
@@ -590,7 +731,11 @@ let editing = null;
 let whyParent = null;
 let selectedMeasure = null;
 const openRoles = new Set();
-let editingFailure = null, editingDriver = null;
+let editingFailure = null, editingDriver = null, editingCondition = null, editingAction = null, traceCondition = "", diffVersion = null;
+const DOMAINS = { demand: "Demand and capacity", information: "Information integrity", responsibility: "Responsibility and decision rights", handoff: "Handoff and dependency continuity", execution: "Execution and functional completion", adaptation: "Adaptation and interruption capacity" };
+const COND_STATUS = { present: ["Present (documented)", "ok"], absent: ["Absent (documented)", "gap"], changed: ["Changed during the event", "assume"], not_established: ["Not established: no evidence either way", "assume"], disputed: ["Disputed", "assume"], unknown: ["Unknown", ""] };
+const EV_STATUS = { documented: "Documented in a record", reported: "Reported in an account or interview", inferred: "Inferred from other records", none: "No evidence recorded" };
+const DIMS = [["capacity", "Could act"], ["expected", "Expected to act"], ["answerable", "Would answer for the result"]];
 
 // ---------- helpers ----------
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -606,15 +751,34 @@ function el(html) { const t = document.createElement("template"); t.innerHTML = 
 // ---------- analysis ----------
 function unchecked() { return sortedSteps().filter(s => s.belief && s.belief.trim() && s.checked !== "yes"); }
 function unacked() { return sortedSteps().filter(s => s.to && s.ack !== "yes"); }
+function ackNo() { return sortedSteps().filter(s => s.to && s.ack === "no"); }
+function ackUnknown() { return sortedSteps().filter(s => s.to && s.ack !== "yes" && s.ack !== "no"); }
+function receiptNotEstablished() { return sortedSteps().filter(s => s.to && !S.steps.some(z => z.wait === s.id && z.role === s.to)); }
 function dutyStatus(d) {
-  const vals = S.roles.map(r => d.claims[r.id]).filter(Boolean);
-  const mine = vals.filter(v => v === "mine").length;
-  if (!vals.length) return { k: "none", label: "No answers yet", cls: "" };
-  if (mine === 0) return { k: "unclaimed", label: "Unclaimed: no role believed it was theirs", cls: "gap" };
-  if (mine > 1) return { k: "shared", label: "More than one role believed it was theirs", cls: "assume" };
-  return { k: "owned", label: "One role believed it was theirs", cls: "ok" };
+  const claims = d.claims || {}, dims = d.dims || {};
+  const answered = S.roles.filter(r => claims[r.id]);
+  const involved = S.roles.filter(r => claims[r.id] || (dims[r.id] && Object.values(dims[r.id]).some(Boolean)));
+  const mine = answered.filter(r => claims[r.id] === "mine").length;
+  const conflicts = S.roles.filter(r => dims[r.id] && ((dims[r.id].expected === "yes" && claims[r.id] === "theirs") || (dims[r.id].expected === "no" && claims[r.id] === "mine")));
+  const incomplete = involved.filter(r => !claims[r.id]).length;
+  let k, label, cls;
+  if (!answered.length) { k = "none"; label = "No answers yet"; cls = ""; }
+  else if (mine > 1) { k = "multiple"; label = "Multiple roles claimed it"; cls = "assume"; }
+  else if (mine === 1) { k = "owned"; label = "Claimed by one role"; cls = "ok"; }
+  else if (answered.some(r => claims[r.id] === "unsure")) { k = "uncertain"; label = "Uncertain: no role claimed it and at least one was not sure"; cls = "assume"; }
+  else { k = "disclaimed"; label = "Disclaimed by every role that answered"; cls = "gap"; }
+  const conflictText = conflicts.length ? "Conflicting: " + conflicts.map(r => r.name + (claims[r.id] === "theirs" ? " was expected to act but believed it was another role's" : " claimed it but was not expected to act")).join("; ") : "";
+  return { k, label, cls, conflictText, incomplete };
 }
-function unclaimed() { return S.duties.filter(d => dutyStatus(d).k === "unclaimed"); }
+function unclaimed() { return S.duties.filter(d => ["disclaimed", "uncertain"].includes(dutyStatus(d).k)); }
+function condById(id) { return S.conditions.find(c => c.id === id) || null; }
+function condStatusLabel(c) { return (COND_STATUS[c.status] || ["Unknown", ""])[0]; }
+function condRefSteps(c) { return (c.refs || []).map(r => { const [k, id] = String(r).split(":"); return ["step", "handoff", "assumption"].includes(k) ? S.steps.find(z => z.id === id) : null; }).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a.t - b.t); }
+function condLinks(c) {
+  return { actions: S.actions.filter(a => (a.conditions || []).includes(c.id)), drivers: S.drivers.filter(d => (d.conditions || []).includes(c.id)),
+    failures: S.failures.filter(f => f.conditionId === c.id), measures: S.measures.filter(m => m.conditionId === c.id), statements: S.statements.filter(x => x.conditionId === c.id) };
+}
+function condOptions(sel, cur, none) { $(sel).innerHTML = '<option value="">' + esc(none || "None") + "</option>" + S.conditions.map(c => '<option value="' + esc(c.id) + '">' + esc(c.required.slice(0, 90)) + "</option>").join(""); $(sel).value = cur && condById(cur) ? cur : ""; }
 
 // ---------- routing ----------
 const STAGES = ["event", "timeline", "lanes", "ownership", "causes", "risks", "drivers", "actions", "measure", "summary", "save"];
@@ -633,7 +797,7 @@ let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTi
 
 // ---------- render all ----------
 function renderAll() {
-  renderEvent(); renderRoles(); renderOverview(); renderStepForm(); renderSteps(); renderLanes(); renderDuties();
+  renderEvent(); renderRoles(); renderOverview(); renderStepForm(); renderSteps(); renderVersions(); renderConditions(); renderLanes(); renderDuties();
   renderCauses(); renderStatements(); renderFailures(); renderDrivers(); renderActions(); renderRunInputs(); renderRun(); renderSummary();
   $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title ? (S.event.title.length > 48 ? S.event.title.slice(0, 46) + "…" : S.event.title) : "Untitled review") + "</span>";
 }
@@ -642,7 +806,9 @@ function renderAll() {
 function renderEvent() {
   $("ev-title").value = S.event.title; $("ev-setting").value = S.event.setting;
   $("ev-summary").value = S.event.summary; $("ev-outcome").value = S.event.outcome;
+  [["intended", "ev-intended"], ["onset", "ev-onset"], ["constraints", "ev-constraints"], ["evidenceSource", "ev-evidence"], ["unknowns", "ev-unknowns"]].forEach(([k, id]) => { $(id).value = S.event[k] || ""; });
 }
+[["intended", "ev-intended"], ["onset", "ev-onset"], ["constraints", "ev-constraints"], ["evidenceSource", "ev-evidence"], ["unknowns", "ev-unknowns"]].forEach(([k, id]) => $(id).addEventListener("input", e => { S.event[k] = e.target.value; }));
 ["title", "setting", "summary", "outcome"].forEach(k => {
   $("ev-" + k).addEventListener("input", e => { S.event[k] = e.target.value; if (k === "title") { $("effect-title").textContent = S.event.title || "The event"; $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title || "Untitled review") + "</span>"; } });
 });
@@ -693,7 +859,10 @@ function renderOverview() {
   const tiles = [
     ["accent", S.steps.length, "steps across " + S.roles.length + " roles", "#timeline"],
     ["assume", unchecked().length, "unchecked assumptions", "#lanes"],
-    ["gap", unacked().length, "handoffs not acknowledged", "#lanes"],
+    ["gap", ackNo().length, "handoffs documented as not acknowledged", "#lanes"],
+    ["assume", ackUnknown().length, "handoffs with acknowledgment not established", "#lanes"],
+    ["assume", receiptNotEstablished().length, "handoffs with receipt not established", "#lanes"],
+    ["trace", S.conditions.filter(c => ["absent", "changed", "not_established", "disputed"].includes(c.status)).length, "process conditions with a discrepancy", "#lanes"],
     ["gap", unclaimed().length, "unclaimed responsibilities", "#ownership"],
     ["accent", S.statements.length, "causal statements", "#causes"],
     ["accent", S.actions.length, "actions planned", "#actions"],
@@ -724,7 +893,8 @@ function renderSteps() {
     if (s.id === selected) li.classList.add("sel");
     let chips = "";
     if (s.kind && s.kind !== "activity") chips += '<span class="chip accent">' + ({ decision: "Decision", start: "Start", end: "End" }[s.kind] || "") + "</span>";
-    if (s.to) chips += '<span class="chip ' + (s.ack === "yes" ? "ok" : "gap") + '">Handed to ' + esc(roleName(s.to)) + (s.ack === "yes" ? ", acknowledged" : s.ack === "no" ? ", not acknowledged" : ", acknowledgement not known") + "</span>";
+    if (s.to) chips += '<span class="chip ' + (s.ack === "yes" ? "ok" : s.ack === "no" ? "gap" : "assume") + '">Handed to ' + esc(roleName(s.to)) + (s.transfer ? " (" + esc(s.transfer) + ")" : "") + (s.ack === "yes" ? ", acknowledged" : s.ack === "no" ? ", documented as not acknowledged" : ", acknowledgment not established") + "</span>";
+    S.conditions.filter(c => (c.refs || []).some(r => r.endsWith(":" + s.id))).forEach(c => { chips += '<span class="chip trace">Condition: ' + esc(c.required.slice(0, 50)) + (c.required.length > 50 ? "…" : "") + " · " + esc(condStatusLabel(c).split(":")[0]) + "</span>"; });
     if (s.wait) chips += '<span class="chip">Waited on step ' + stepNo(s.wait) + "</span>";
     li.innerHTML = '<div class="item-head"><span><span class="mono muted">' + (i + 1) + ". " + esc(fmtTime(s.t)) + '</span> <b>' + esc(roleName(s.role)) + '</b></span><span class="row" style="gap:6px"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div>' +
       '<p class="what">' + esc(s.what) + "</p>" + (chips ? '<div class="chips">' + chips + "</div>" : "") +
@@ -744,6 +914,7 @@ function startEdit(id) {
   const m = s.t % 1440; $("st-time").value = String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
   $("st-kind").value = s.kind || "activity"; $("st-what").value = s.what; $("st-to").value = s.to || ""; $("st-ack").value = s.ack || "unknown";
   $("st-wait").value = s.wait || ""; $("st-belief").value = s.belief || ""; $("st-checked").value = s.checked || "no";
+  $("st-transfer").value = s.transfer || ""; $("st-ackev").value = s.ackEvidence || "";
   $("step-form-title").textContent = "Edit step " + stepNo(id); $("st-save").textContent = "Save changes"; $("st-cancel").hidden = false;
   if (location.hash !== "#timeline") location.hash = "timeline";
   $("st-what").focus();
@@ -757,7 +928,7 @@ $("step-form").addEventListener("submit", e => {
   e.preventDefault();
   const [hh, mm] = ($("st-time").value || "00:00").split(":").map(Number);
   const rec = { role: $("st-role").value, t: Number($("st-day").value) * 1440 + hh * 60 + mm, kind: $("st-kind").value, what: $("st-what").value.trim(), to: $("st-to").value,
-    ack: $("st-ack").value, wait: $("st-wait").value, belief: $("st-belief").value.trim(), checked: $("st-checked").value };
+    ack: $("st-ack").value, wait: $("st-wait").value, belief: $("st-belief").value.trim(), checked: $("st-checked").value, transfer: $("st-transfer").value.trim(), ackEvidence: $("st-ackev").value.trim() };
   if (!rec.role) { $("st-role").focus(); return; }
   if (!rec.what) { $("st-what").focus(); return; }
   if (rec.to === rec.role) rec.to = "";
@@ -782,6 +953,7 @@ function renderLanes() {
   let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Swimlane diagram of the event timeline">';
   svg += '<defs><marker id="arr-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="' + C.accent + '"/></marker>' +
     '<marker id="arr-gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="' + C.gap + '"/></marker>' +
+    '<marker id="arr-unk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="' + C.assume + '"/></marker>' +
     '<marker id="arr-wait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="' + C.muted + '"/></marker></defs>';
   S.roles.forEach((r, i) => {
     svg += '<rect x="0" y="' + (TOP + i * LH) + '" width="' + W + '" height="' + LH + '" fill="' + (i % 2 ? C.b : C.a) + '"/>';
@@ -807,7 +979,7 @@ function renderLanes() {
   });
   steps.forEach(s => {
     if (!s.to || laneIdx(s.to) < 0 || laneIdx(s.role) < 0) return;
-    const ok = s.ack === "yes", col = ok ? C.accent : C.gap, dash = ok ? "" : ' stroke-dasharray="5 3"', mk = ok ? "arr-ok" : "arr-gap";
+    const ok = s.ack === "yes", no = s.ack === "no", col = ok ? C.accent : no ? C.gap : C.assume, dash = ok ? "" : no ? ' stroke-dasharray="5 3"' : ' stroke-dasharray="2 3"', mk = ok ? "arr-ok" : no ? "arr-gap" : "arr-unk";
     const r = receiverOf(s), x1 = x(s.t), y1 = y(s.role), y2 = y(s.to), dir = y2 > y1 ? 1 : -1;
     if (r) {
       const x2 = x(r.t), op = selected && !(related.has(s.id) && related.has(r.id)) ? ' opacity="0.25"' : "";
@@ -818,11 +990,17 @@ function renderLanes() {
       }
     } else {
       // Nothing in the receiving lane records taking this handoff: end at an open "?" marker so the gap is visible.
-      const xm = x1 + 34, tip = "Handed to " + roleName(s.to) + (ok ? " and acknowledged" : "") + ", but no step is recorded as receiving it";
+      const xm = x1 + 34, tip = "Handed to " + roleName(s.to) + (ok ? " and acknowledged" : "") + "; receipt not established: no step is recorded as receiving it";
       svg += '<g' + dim(s.id) + '><path d="M' + x1 + "," + (y1 + dir * 11) + " C" + x1 + "," + y2 + " " + (x1 + 6) + "," + y2 + " " + (xm - 12) + "," + y2 + '" fill="none" stroke="' + col + '" stroke-width="1.7"' + dash + ' marker-end="url(#' + mk + ')"/>';
       svg += '<circle cx="' + xm + '" cy="' + y2 + '" r="9" fill="' + C.surface + '" stroke="' + col + '" stroke-width="1.6" stroke-dasharray="2.5 2"/><text x="' + xm + '" y="' + (y2 + 4) + '" text-anchor="middle" style="font-family:var(--f-mono);font-size:11px;font-weight:500" fill="' + col + '">?</text><title>' + esc(tip) + "</title></g>";
     }
   });
+  const tc = traceCondition ? condById(traceCondition) : null;
+  if (tc) {
+    const path = condRefSteps(tc).filter(z => laneIdx(z.role) >= 0), tcol = cssVar("--trace");
+    if (path.length > 1) svg += '<polyline points="' + path.map(z => x(z.t) + "," + y(z.role)).join(" ") + '" fill="none" stroke="' + tcol + '" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" opacity="0.28"/>';
+    path.forEach(z => { svg += '<circle class="trace-ring" cx="' + x(z.t) + '" cy="' + y(z.role) + '" r="17" fill="none" stroke="' + tcol + '" stroke-width="2.4"/>'; });
+  }
   steps.forEach((s, i) => {
     if (laneIdx(s.role) < 0) return;
     const cx = x(s.t), cy = y(s.role), assume = s.belief && s.belief.trim() && s.checked !== "yes", isSel = s.id === selected;
@@ -857,17 +1035,21 @@ function renderDetail() {
   if (from) h += '<span class="chip ' + (from.ack === "yes" ? "ok" : "gap") + '">Last handoff in: step ' + stepNo(from.id) + " from " + esc(roleName(from.role)) + "</span>";
   if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : "gap") + '">Handed to ' + esc(roleName(s.to)) + "</span>";
   down.forEach(d => { h += '<span class="chip accent">Step ' + stepNo(d.id) + " waited on this</span>"; });
+  if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : s.ack === "no" ? "gap" : "assume") + '">Acknowledgment: ' + (s.ack === "yes" ? "confirmed" : s.ack === "no" ? "documented as not given" : "not established") + (s.ackEvidence ? " · evidence: " + esc(s.ackEvidence) : "") + "</span>" + (s.transfer ? '<span class="chip">Handed over: ' + esc(s.transfer) + "</span>" : "") + (!S.steps.some(z => z.wait === s.id && z.role === s.to) ? '<span class="chip assume">Receipt not established</span>' : "");
+  S.conditions.filter(c => (c.refs || []).some(r => r.endsWith(":" + s.id))).forEach(c => { h += '<span class="chip trace">Required: ' + esc(c.required) + " · " + esc(condStatusLabel(c)) + "</span>"; });
   const fms = S.failures.filter(f => f.target === "step:" + s.id || f.target === "handoff:" + s.id);
   fms.forEach(f => { h += '<span class="chip gap">Failure mode: ' + esc(f.mode) + (rpnOf(f) ? " · RPN " + rpnOf(f) : "") + "</span>"; });
-  h += '</div><div class="row"><button type="button" class="ghost small" id="detail-edit">Edit this step</button></div>';
+  h += '</div><div class="row"><button type="button" class="ghost small" id="detail-edit">Edit this step</button><button type="button" class="quiet small" id="detail-cond">Add a condition for this step</button></div>';
   box.innerHTML = h;
   $("detail-edit").addEventListener("click", () => startEdit(s.id));
+  $("detail-cond").addEventListener("click", () => { stopConditionEdit(); renderConditions(); setChecked("cond-refs", s.to ? ["step:" + s.id, "handoff:" + s.id] : ["step:" + s.id]); $("cond-domain").value = s.to ? "handoff" : "execution"; $("cond-required").focus(); });
 }
 function renderSignals() {
   const ul = $("signal-list"); const items = [];
   unchecked().forEach(s => items.push('<li class="item"><span class="chip assume">Unchecked assumption · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " believed: " + esc(s.belief) + "</p></li>"));
-  unacked().forEach(s => items.push('<li class="item"><span class="chip gap">Handoff not acknowledged · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.what) + "</p></li>"));
-  sortedSteps().filter(s => s.to && !S.steps.some(z => z.wait === s.id && z.role === s.to)).forEach(s => items.push('<li class="item"><span class="chip gap">No step recorded as receiving it · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.what) + "</p></li>"));
+  ackNo().forEach(s => items.push('<li class="item"><span class="chip gap">Documented as not acknowledged · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
+  ackUnknown().forEach(s => items.push('<li class="item"><span class="chip assume">Acknowledgment not established · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
+  receiptNotEstablished().forEach(s => items.push('<li class="item"><span class="chip assume">Receipt not established · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
   unclaimed().forEach(d => items.push('<li class="item"><span class="chip gap">Unclaimed responsibility</span><p>' + esc(d.name) + "</p></li>"));
   ul.innerHTML = items.length ? items.join("") : '<li class="muted">No signals yet.</li>';
 }
@@ -882,7 +1064,7 @@ function renderDuties() {
     h += "<tr><td><b>" + esc(d.name) + "</b></td>" + S.roles.map(r => {
       const v = d.claims[r.id] || "";
       return '<td><select data-d="' + esc(d.id) + '" data-r="' + esc(r.id) + '" aria-label="' + esc(r.name + ": " + d.name) + '"><option value=""' + (v === "" ? " selected" : "") + '>Not involved</option><option value="mine"' + (v === "mine" ? " selected" : "") + '>Mine</option><option value="theirs"' + (v === "theirs" ? " selected" : "") + '>Another role\'s</option><option value="unsure"' + (v === "unsure" ? " selected" : "") + ">Not sure</option></select></td>";
-    }).join("") + '<td><span class="chip ' + st.cls + '">' + esc(st.label) + '</span></td><td><button type="button" class="quiet small" data-del="' + esc(d.id) + '">Remove</button></td></tr>';
+    }).join("") + '<td><span class="chip ' + st.cls + '">' + esc(st.label) + "</span>" + (st.conflictText ? ' <span class="chip assume">' + esc(st.conflictText) + "</span>" : "") + (st.incomplete ? ' <span class="chip">Incomplete: ' + st.incomplete + (st.incomplete === 1 ? " role" : " roles") + " not asked</span>" : "") + '</td><td><button type="button" class="quiet small" data-del="' + esc(d.id) + '">Remove</button></td></tr>';
   });
   tb.innerHTML = h + "</tbody>";
   tb.querySelectorAll("select").forEach(s => s.addEventListener("change", e => {
@@ -891,6 +1073,31 @@ function renderDuties() {
     renderDuties(); renderOverview(); renderSignals(); renderSuggestions();
   }));
   tb.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => { S.duties = S.duties.filter(z => z.id !== b.dataset.del); renderAll(); }));
+  renderDutyDims();
+}
+const openDuties = new Set();
+function renderDutyDims() {
+  const box = $("duty-dims"); box.innerHTML = "";
+  const opt = (v, cur, label) => '<option value="' + v + '"' + (cur === v ? " selected" : "") + ">" + label + "</option>";
+  S.duties.forEach(d => {
+    d.dims = d.dims || {};
+    const det = el('<details class="panel more"><summary></summary><div class="row"><label>Decision authority <span class="hint">who could decide</span><input data-f="authority"></label><label>Escalation arrangement<input data-f="escalation"></label></div><div class="scroll-x"><table class="duty"></table></div></details>');
+    if (openDuties.has(d.id)) det.open = true;
+    det.addEventListener("toggle", () => { det.open ? openDuties.add(d.id) : openDuties.delete(d.id); });
+    det.querySelector("summary").textContent = "Capacity, expectation and accountability: " + d.name;
+    det.querySelectorAll("input[data-f]").forEach(inp => { inp.value = d[inp.dataset.f] || ""; inp.setAttribute("aria-label", inp.dataset.f + ": " + d.name); inp.addEventListener("input", () => { d[inp.dataset.f] = inp.value; }); });
+    const roles = S.roles;
+    det.querySelector("table").innerHTML = "<thead><tr><th>Role</th><th>Believed it was</th>" + DIMS.map(x => "<th>" + esc(x[1]) + "</th>").join("") + "</tr></thead><tbody>" + roles.map(r => {
+      const dv = d.dims[r.id] || {}, c = (d.claims || {})[r.id];
+      return "<tr><td>" + esc(r.name) + "</td><td>" + esc(c === "mine" ? "Mine" : c === "theirs" ? "Another role's" : c === "unsure" ? "Not sure" : "Not asked") + "</td>" + DIMS.map(x => '<td><select data-r="' + esc(r.id) + '" data-k="' + x[0] + '" aria-label="' + esc(r.name + ": " + x[1]) + '">' + opt("", dv[x[0]] || "", "Not asked") + opt("yes", dv[x[0]], "Yes") + opt("no", dv[x[0]], "No") + opt("unknown", dv[x[0]], "Not known") + "</select></td>").join("") + "</tr>";
+    }).join("") + "</tbody>";
+    det.querySelectorAll("select").forEach(sel => sel.addEventListener("change", () => {
+      const rid = sel.dataset.r; d.dims[rid] = d.dims[rid] || {};
+      if (sel.value) d.dims[rid][sel.dataset.k] = sel.value; else delete d.dims[rid][sel.dataset.k];
+      renderDuties(); renderOverview(); renderSignals();
+    }));
+    box.appendChild(det);
+  });
 }
 $("duty-add").addEventListener("click", () => { const v = $("duty-new").value.trim(); if (!v) return; S.duties.push({ id: uid("d"), name: v, claims: {} }); $("duty-new").value = ""; renderAll(); });
 $("duty-new").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("duty-add").click(); } });
@@ -972,9 +1179,11 @@ function showLint() { $("stmt-lint").innerHTML = lint(stmtFromForm()).map(l => '
 ["stmt-cause", "stmt-effect", "stmt-event"].forEach(id => $(id).addEventListener("input", showLint));
 $("stmt-form").addEventListener("submit", e => {
   e.preventDefault(); const st = stmtFromForm(); if (!st.cause.trim() || !st.effect.trim() || !st.event.trim()) return;
+  st.conditionId = $("stmt-cond").value; st.evidence = $("stmt-evidence").value.trim(); st.uncertainty = $("stmt-uncert").value.trim();
   S.statements.push(Object.assign({ id: uid("x") }, st)); $("stmt-form").reset(); $("stmt-event").value = S.event.title ? S.event.title.toLowerCase() : ""; $("stmt-lint").innerHTML = ""; renderStatements(); renderActions(); renderOverview();
 });
 function renderStatements() {
+  condOptions("stmt-cond", $("stmt-cond").value, "Not linked");
   const ul = $("stmt-list"); ul.innerHTML = "";
   if (!S.statements.length) { ul.innerHTML = '<li class="muted">No causal statements yet.</li>'; return; }
   S.statements.forEach((st, i) => {
@@ -983,7 +1192,10 @@ function renderStatements() {
     const li = el('<li class="item"><div class="item-head"><span class="eyebrow"></span><button type="button" class="quiet small">Delete</button></div><p class="statement"></p><div class="chips"></div></li>');
     li.querySelector(".eyebrow").textContent = "Statement " + (i + 1);
     li.querySelector(".statement").textContent = "Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + ".";
-    li.querySelector(".chips").innerHTML = '<span class="chip ' + (n ? "ok" : "gap") + '">' + (n ? n + (n === 1 ? " action" : " actions") : "No action yet") + "</span>" + (warns.length ? '<span class="chip assume">' + warns.length + " wording " + (warns.length === 1 ? "check" : "checks") + "</span>" : "");
+    li.querySelector(".chips").innerHTML = '<span class="chip ' + (n ? "ok" : "gap") + '">' + (n ? n + (n === 1 ? " action" : " actions") : "No action yet") + "</span>" + (warns.length ? '<span class="chip assume">' + warns.length + " wording " + (warns.length === 1 ? "check" : "checks") + "</span>" : "") +
+      (condById(st.conditionId) ? '<span class="chip trace">Condition: ' + esc(condById(st.conditionId).required.slice(0, 60)) + "</span>" : '<span class="chip">No condition linked</span>') +
+      (st.evidence ? '<span class="chip ok">Evidence: ' + esc(st.evidence) + "</span>" : '<span class="chip gap">No evidence recorded</span>') +
+      (st.uncertainty ? '<span class="chip">Uncertainty: ' + esc(st.uncertainty) + "</span>" : "");
     li.querySelector("button").addEventListener("click", () => { S.statements = S.statements.filter(z => z.id !== st.id); S.actions.forEach(a => { if (a.stmt === st.id) a.stmt = ""; }); renderAll(); });
     ul.appendChild(li);
   });
@@ -1019,6 +1231,109 @@ function findingGroups() {
 function rpnOf(f) { return f.occ && f.det && f.sev ? f.occ * f.det * f.sev : null; }
 function clampRating(v) { const n = Math.round(Number(v)); return v === "" || isNaN(n) ? null : Math.min(10, Math.max(1, n)); }
 
+// ---------- process conditions (stage 3) ----------
+function condRefGroups() {
+  const steps = sortedSteps();
+  return [["Steps", steps.map(x => "step:" + x.id)], ["Handoffs", steps.filter(x => x.to).map(x => "handoff:" + x.id)], ["Shared responsibilities", S.duties.map(x => "duty:" + x.id)]].filter(g => g[1].length);
+}
+function renderConditions() {
+  const kv = { d: $("cond-domain").value, s: $("cond-status").value, e: $("cond-evstatus").value };
+  $("cond-domain").innerHTML = Object.keys(DOMAINS).map(k => '<option value="' + k + '">' + esc(DOMAINS[k]) + "</option>").join("");
+  $("cond-status").innerHTML = Object.keys(COND_STATUS).map(k => '<option value="' + k + '">' + esc(COND_STATUS[k][0]) + "</option>").join("");
+  $("cond-evstatus").innerHTML = Object.keys(EV_STATUS).map(k => '<option value="' + k + '">' + esc(EV_STATUS[k]) + "</option>").join("");
+  $("cond-domain").value = DOMAINS[kv.d] ? kv.d : "handoff"; $("cond-status").value = COND_STATUS[kv.s] ? kv.s : "not_established"; $("cond-evstatus").value = EV_STATUS[kv.e] ? kv.e : "none";
+  const keep = checked("cond-refs");
+  $("cond-refs").innerHTML = condRefGroups().map(g => '<div class="grp">' + esc(g[0]) + "</div>" + g[1].map(r => pick("cond-refs", r, refLabel(r).replace(/^[^·]*· /, ""))).join("")).join("");
+  setChecked("cond-refs", keep);
+  const cur = traceCondition;
+  $("trace-select").innerHTML = '<option value="">None</option>' + S.conditions.map(c => '<option value="' + esc(c.id) + '">' + esc(DOMAINS[c.domain] + ": " + c.required.slice(0, 80)) + "</option>").join("");
+  $("trace-select").value = cur && condById(cur) ? cur : "";
+  const ul = $("cond-list"); ul.innerHTML = "";
+  if (!S.conditions.length) { ul.innerHTML = '<li class="muted">No process conditions yet. Select a step in the swimlanes and choose "Add a condition for this step".</li>'; return; }
+  S.conditions.forEach(c => {
+    const st = COND_STATUS[c.status] || ["Unknown", ""], path = condRefSteps(c), L = condLinks(c);
+    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="ghost small" data-a="trace">Show path</button><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div><div data-body style="display:grid;gap:6px"></div></li>');
+    li.querySelector(".chips").innerHTML = '<span class="chip trace">' + esc(DOMAINS[c.domain] || c.domain) + '</span><span class="chip ' + st[1] + '">' + esc(st[0]) + '</span><span class="chip">' + esc(EV_STATUS[c.evStatus] || EV_STATUS.none) + '</span><span class="chip ' + (c.resolution === "resolved" ? "ok" : c.resolution === "unresolved" ? "gap" : "") + '">' + esc(c.resolution === "resolved" ? "Resolved" : c.resolution === "unresolved" ? "Unresolved" : "Resolution not known") + "</span>";
+    let b = '<div class="cond-line"><span class="lbl">Required</span>' + esc(c.required) + "</div>";
+    b += '<div class="cond-line"><span class="lbl">Observed</span>' + (c.observed ? esc(c.observed) : '<span class="muted">Not recorded</span>') + "</div>";
+    if (c.status === "absent" && (!c.evStatus || c.evStatus === "none")) b += '<p class="flag" style="font-size:.85rem;color:var(--assume)">Recorded as absent with no evidence. If nothing shows it either way, "Not established" is more accurate.</p>';
+    if (c.evidence) b += '<div class="cond-line"><span class="lbl">Evidence</span>' + esc(c.evidence) + "</div>";
+    if (path.length) b += '<div class="cond-line"><span class="lbl">Traced across</span>' + path.map(z => "step " + stepNo(z.id) + " (" + esc(fmtTime(z.t) + ", " + roleName(z.role)) + ")").join(" → ") + "</div>";
+    if (c.interpretation) b += '<div class="cond-line"><span class="lbl">Reviewer interpretation</span>' + esc(c.interpretation) + "</div>";
+    if (c.question) b += '<div class="cond-line"><span class="lbl">Open question</span>' + esc(c.question) + "</div>";
+    const links = [].concat(L.statements.map(x => "Causal statement " + (S.statements.indexOf(x) + 1)), L.failures.map(f => "Failure mode: " + f.mode), L.drivers.map(d => "Driver: " + d.text), L.actions.map(a => actionLabel(a)), L.measures.map(m => "Measure: " + m.name));
+    b += '<div class="chips">' + (links.length ? links.map(t => '<span class="chip">' + esc(t.length > 70 ? t.slice(0, 68) + "…" : t) + "</span>").join("") : '<span class="chip gap">Not linked to any statement, driver, action or measure</span>') + "</div>";
+    li.querySelector("[data-body]").innerHTML = b;
+    li.querySelector('[data-a="trace"]').addEventListener("click", () => { traceCondition = c.id; renderConditions(); location.hash = "lanes"; renderLanes(); $("lane-frame").scrollIntoView({ block: "center" }); });
+    li.querySelector('[data-a="edit"]').addEventListener("click", () => startConditionEdit(c.id));
+    li.querySelector('[data-a="del"]').addEventListener("click", () => { S.conditions = S.conditions.filter(z => z.id !== c.id); S.actions.forEach(a => { a.conditions = (a.conditions || []).filter(x => x !== c.id); }); S.drivers.forEach(d => { d.conditions = (d.conditions || []).filter(x => x !== c.id); }); [S.failures, S.measures, S.statements].forEach(arr => arr.forEach(o => { if (o.conditionId === c.id) o.conditionId = ""; })); if (traceCondition === c.id) traceCondition = ""; renderAll(); });
+    ul.appendChild(li);
+  });
+}
+function startConditionEdit(id) {
+  const c = condById(id); if (!c) return;
+  editingCondition = id; renderConditions();
+  $("cond-domain").value = c.domain; $("cond-required").value = c.required; $("cond-observed").value = c.observed || ""; $("cond-status").value = c.status; $("cond-evstatus").value = c.evStatus || "none";
+  $("cond-evidence").value = c.evidence || ""; setChecked("cond-refs", c.refs); $("cond-at").value = c.at || ""; $("cond-res").value = c.resolution || "unknown"; $("cond-resnote").value = c.resNote || "";
+  $("cond-interp").value = c.interpretation || ""; $("cond-question").value = c.question || "";
+  $("cond-form-title").textContent = "Edit process condition"; $("cond-save").textContent = "Save changes"; $("cond-cancel").hidden = false;
+  if (location.hash !== "#lanes") location.hash = "lanes"; $("cond-required").focus();
+}
+function stopConditionEdit() { editingCondition = null; $("cond-form").reset(); setChecked("cond-refs", []); $("cond-status").value = "not_established"; $("cond-evstatus").value = "none"; $("cond-res").value = "unresolved"; $("cond-form-title").textContent = "Add a process condition"; $("cond-save").textContent = "Add condition"; $("cond-cancel").hidden = true; }
+$("cond-cancel").addEventListener("click", stopConditionEdit);
+$("trace-select").addEventListener("change", e => { traceCondition = e.target.value; renderLanes(); });
+$("cond-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const rec = { domain: $("cond-domain").value, required: $("cond-required").value.trim(), observed: $("cond-observed").value.trim(), status: $("cond-status").value, evStatus: $("cond-evstatus").value,
+    evidence: $("cond-evidence").value.trim(), refs: checked("cond-refs"), at: $("cond-at").value.trim(), resolution: $("cond-res").value, resNote: $("cond-resnote").value.trim(),
+    interpretation: $("cond-interp").value.trim(), question: $("cond-question").value.trim() };
+  if (!rec.required) { $("cond-required").focus(); return; }
+  if (editingCondition) Object.assign(condById(editingCondition), rec); else S.conditions.push(Object.assign({ id: uid("k") }, rec));
+  stopConditionEdit(); renderAll();
+});
+
+// ---------- workflow versions (stage 2) ----------
+function snapshotOf(state) { const c = clone(state); delete c.versions; return c; }
+function renderVersions() {
+  const ul = $("ver-list"); ul.innerHTML = "";
+  if (!S.versions.length) ul.innerHTML = '<li class="muted">No saved versions yet.</li>';
+  S.versions.forEach(v => {
+    const li = el('<li class="item"><div class="item-head"><span><b></b> <span class="muted mono"></span></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="ghost small" data-a="cmp">Compare with current</button></span></div></li>');
+    li.querySelector("b").textContent = v.label; li.querySelector(".mono").textContent = v.savedAt + " · " + (v.snapshot.steps || []).length + " steps";
+    li.querySelector('[data-a="cmp"]').addEventListener("click", () => { diffVersion = diffVersion === v.id ? null : v.id; renderVersions(); });
+    ul.appendChild(li);
+  });
+  const v = S.versions.find(x => x.id === diffVersion);
+  $("ver-diff").innerHTML = v ? versionDiffHtml(v) : "";
+}
+function versionDiffHtml(v) {
+  const old = v.snapshot, out = [];
+  const oldSteps = new Map((old.steps || []).map(z => [z.id, z])), curSteps = new Map(S.steps.map(z => [z.id, z]));
+  const oldRole = id => { const r = (old.roles || []).find(x => x.id === id); return r ? r.name : roleName(id); };
+  const ackLabel = a => a === "yes" ? "acknowledged" : a === "no" ? "documented as not acknowledged" : "acknowledgment not established";
+  sortedSteps().forEach(z => { if (!oldSteps.has(z.id)) out.push(["Step added", fmtTime(z.t) + ", " + roleName(z.role) + ": " + z.what]); });
+  (old.steps || []).forEach(z => { if (!curSteps.has(z.id)) out.push(["Step removed", fmtTime(z.t) + ", " + oldRole(z.role) + ": " + z.what]); });
+  sortedSteps().forEach(z => { const o = oldSteps.get(z.id); if (!o) return;
+    const ch = [];
+    if (o.what !== z.what) ch.push("description"); if (o.t !== z.t) ch.push("time " + fmtTime(o.t) + " → " + fmtTime(z.t)); if (o.role !== z.role) ch.push("role");
+    if ((o.to || "") !== (z.to || "")) ch.push("handoff recipient"); if ((o.wait || "") !== (z.wait || "")) ch.push("what it waited on"); if ((o.kind || "activity") !== (z.kind || "activity")) ch.push("step type");
+    if (z.to && (o.ack || "unknown") !== (z.ack || "unknown")) ch.push("handoff " + ackLabel(o.ack) + " → " + ackLabel(z.ack));
+    if (ch.length) out.push(["Step " + stepNo(z.id) + " changed", ch.join("; ")]); });
+  const oldConds = new Map((old.conditions || []).map(c => [c.id, c]));
+  S.conditions.forEach(c => { const o = oldConds.get(c.id);
+    if (!o) out.push(["Condition added", c.required]);
+    else { const ch = []; if (o.status !== c.status) ch.push((COND_STATUS[o.status] || [o.status])[0] + " → " + condStatusLabel(c)); if ((o.resolution || "") !== (c.resolution || "")) ch.push("resolution " + (o.resolution || "–") + " → " + (c.resolution || "–")); if (ch.length) out.push(["Condition changed", c.required + ": " + ch.join("; ")]); } });
+  const savedS = S; let oldDuty = {};
+  try { S = Object.assign(clone(old), { versions: [] }); (old.duties || []).forEach(d => { oldDuty[d.id] = dutyStatus(d).label; }); } finally { S = savedS; }
+  S.duties.forEach(d => { const was = oldDuty[d.id], now = dutyStatus(d).label; if (was && was !== now) out.push(["Responsibility changed", d.name + ": " + was + " → " + now]); });
+  return '<div class="panel" style="border-color:var(--trace)"><h3>Changes since “' + esc(v.label) + '”</h3>' + (out.length ? '<ul class="plain diff">' + out.map(([k, t]) => '<li><span class="chip trace">' + esc(k) + "</span> " + esc(t) + "</li>").join("") + "</ul>" : '<p class="muted">No differences in steps, handoffs, conditions or responsibilities.</p>') + "</div>";
+}
+$("ver-save").addEventListener("click", () => {
+  const label = $("ver-label").value.trim() || "Version " + (S.versions.length + 1);
+  S.versions.push({ id: uid("v"), label, savedAt: new Date().toISOString().slice(0, 10), snapshot: snapshotOf(S) });
+  $("ver-label").value = ""; renderVersions();
+});
+
 // ---------- stage 6: FMEA ----------
 function renderFailures() {
   const steps = sortedSteps();
@@ -1032,6 +1347,7 @@ function renderFailures() {
   $("fm-roles").innerHTML = S.roles.map(r => pick("fm-roles", r.id, r.name)).join("") || '<span class="muted">Add roles in stage 1.</span>';
   $("fm-actions").innerHTML = S.actions.map(a => pick("fm-actions", a.id, actionLabel(a) + ". " + a.text)).join("") || '<span class="muted" style="font-size:.85rem">No actions yet.</span>';
   setChecked("fm-roles", keepRoles); setChecked("fm-actions", keepActs);
+  condOptions("fm-cond", $("fm-cond").value, "Not linked");
   const rows = S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1));
   const total = rows.reduce((t, f) => t + (rpnOf(f) || 0), 0), unrated = rows.filter(f => !rpnOf(f)).length;
   $("fm-total").textContent = rows.length ? "Total RPN " + total + (unrated ? " · " + unrated + " not yet rated" : "") : "";
@@ -1039,7 +1355,7 @@ function renderFailures() {
   let h = "<thead><tr><th>Where</th><th>Failure mode</th><th>Causes</th><th>Effects</th><th>Roles affected</th><th>O</th><th>D</th><th>S</th><th>RPN</th><th>Actions</th><th></th></tr></thead><tbody>";
   rows.forEach(f => {
     const acts = (f.actions || []).map(id => S.actions.find(a => a.id === id)).filter(Boolean);
-    h += "<tr><td>" + esc(refLabel(f.target) || "No longer in this review") + "</td><td><b>" + esc(f.mode) + "</b></td><td>" + esc(f.causes) + "</td><td>" + esc(f.effects) + "</td><td>" +
+    h += "<tr><td>" + esc(refLabel(f.target) || "No longer in this review") + "</td><td><b>" + esc(f.mode) + "</b>" + (condById(f.conditionId) ? '<br><span class="chip trace" style="margin-top:4px">Weakens: ' + esc(condById(f.conditionId).required.slice(0, 60)) + "</span>" : "") + (f.safeguards ? '<br><span class="muted" style="font-size:.82rem">Safeguards: ' + esc(f.safeguards) + "</span>" : "") + "</td><td>" + esc(f.causes) + "</td><td>" + esc(f.effects) + "</td><td>" +
       (f.roles || []).map(id => '<span class="chip">' + esc(roleName(id)) + "</span>").join(" ") + '</td><td class="mono">' + (f.occ || "–") + '</td><td class="mono">' + (f.det || "–") + '</td><td class="mono">' + (f.sev || "–") +
       '</td><td class="rpn">' + (rpnOf(f) || '<span class="muted">not rated</span>') + "</td><td>" + (acts.length ? acts.map(a => '<span class="chip ' + (tierOf(a.type) === "weaker" ? "assume" : tierOf(a.type) === "stronger" ? "ok" : "accent") + '">' + esc(actionLabel(a)) + "</span>").join(" ") : '<span class="chip gap">No action</span>') +
       '</td><td><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-edit="' + esc(f.id) + '">Edit</button><button type="button" class="quiet small" data-del="' + esc(f.id) + '">Delete</button></span></td></tr>';
@@ -1054,6 +1370,7 @@ function startFailureEdit(id) {
   $("fm-target").value = f.target; $("fm-mode").value = f.mode; $("fm-causes").value = f.causes || ""; $("fm-effects").value = f.effects || "";
   $("fm-occ").value = f.occ || ""; $("fm-det").value = f.det || ""; $("fm-sev").value = f.sev || "";
   setChecked("fm-roles", f.roles); setChecked("fm-actions", f.actions);
+  $("fm-cond").value = f.conditionId || ""; $("fm-safe").value = f.safeguards || ""; $("fm-resid").value = f.residual || ""; $("fm-down").value = f.downstream || "";
   $("fm-form-title").textContent = "Edit failure mode"; $("fm-save").textContent = "Save changes"; $("fm-cancel").hidden = false; $("fm-mode").focus();
 }
 function stopFailureEdit() { editingFailure = null; $("fm-form").reset(); setChecked("fm-roles", []); setChecked("fm-actions", []); $("fm-form-title").textContent = "Add a failure mode"; $("fm-save").textContent = "Add failure mode"; $("fm-cancel").hidden = true; }
@@ -1061,7 +1378,8 @@ $("fm-cancel").addEventListener("click", stopFailureEdit);
 $("fm-form").addEventListener("submit", e => {
   e.preventDefault();
   const rec = { target: $("fm-target").value, mode: $("fm-mode").value.trim(), causes: $("fm-causes").value.trim(), effects: $("fm-effects").value.trim(), roles: checked("fm-roles"),
-    occ: clampRating($("fm-occ").value), det: clampRating($("fm-det").value), sev: clampRating($("fm-sev").value), actions: checked("fm-actions") };
+    occ: clampRating($("fm-occ").value), det: clampRating($("fm-det").value), sev: clampRating($("fm-sev").value), actions: checked("fm-actions"),
+    conditionId: $("fm-cond").value, safeguards: $("fm-safe").value.trim(), residual: $("fm-resid").value.trim(), downstream: $("fm-down").value.trim() };
   if (!rec.target) { $("fm-target").focus(); return; }
   if (!rec.mode) { $("fm-mode").focus(); return; }
   if (editingFailure) Object.assign(S.failures.find(z => z.id === editingFailure), rec); else S.failures.push(Object.assign({ id: uid("f") }, rec));
@@ -1077,7 +1395,9 @@ function renderDrivers() {
   const prim = S.drivers.filter(d => d.level === "primary");
   $("drv-parents").innerHTML = prim.length ? prim.map(d => pick("drv-parents", d.id, d.text)).join("") : '<span class="muted" style="font-size:.85rem">Add a primary driver first.</span>';
   $("drv-sources").innerHTML = findingGroups().map(g => '<div class="grp">' + esc(g[0]) + "</div>" + g[1].map(r => pick("drv-sources", r, refLabel(r).replace(/^[^·]*· /, ""))).join("")).join("") || '<span class="muted" style="font-size:.85rem">No findings yet.</span>';
-  setChecked("drv-parents", keepP); setChecked("drv-sources", keepS);
+  const keepC = checked("drv-conds");
+  $("drv-conds").innerHTML = S.conditions.map(c => pick("drv-conds", c.id, c.required)).join("") || '<span class="muted" style="font-size:.85rem">No process conditions yet. Add them in stage 3.</span>';
+  setChecked("drv-parents", keepP); setChecked("drv-sources", keepS); setChecked("drv-conds", keepC);
   $("drv-parents-wrap").hidden = $("drv-level").value !== "secondary";
   const ul = $("drv-list"); ul.innerHTML = "";
   if (!S.drivers.length) ul.innerHTML = '<li class="muted">No drivers yet. Start with two to five primary drivers.</li>';
@@ -1101,17 +1421,17 @@ function renderDrivers() {
 function startDriverEdit(id) {
   const d = S.drivers.find(z => z.id === id); if (!d) return;
   editingDriver = id; $("drv-level").value = d.level; renderDrivers();
-  $("drv-text").value = d.text; measureOptions("drv-measure", d.measureId); setChecked("drv-parents", d.parents); setChecked("drv-sources", d.sources);
+  $("drv-text").value = d.text; measureOptions("drv-measure", d.measureId); setChecked("drv-parents", d.parents); setChecked("drv-sources", d.sources); setChecked("drv-conds", d.conditions);
   $("drv-form-title").textContent = "Edit driver"; $("drv-save").textContent = "Save changes"; $("drv-cancel").hidden = false; $("drv-text").focus();
 }
-function stopDriverEdit() { editingDriver = null; $("drv-form").reset(); setChecked("drv-parents", []); setChecked("drv-sources", []); $("drv-parents-wrap").hidden = true; $("drv-form-title").textContent = "Add a driver"; $("drv-save").textContent = "Add driver"; $("drv-cancel").hidden = true; }
+function stopDriverEdit() { editingDriver = null; $("drv-form").reset(); setChecked("drv-parents", []); setChecked("drv-sources", []); setChecked("drv-conds", []); $("drv-parents-wrap").hidden = true; $("drv-form-title").textContent = "Add a driver"; $("drv-save").textContent = "Add driver"; $("drv-cancel").hidden = true; }
 $("drv-cancel").addEventListener("click", stopDriverEdit);
 $("drv-level").addEventListener("change", () => { $("drv-parents-wrap").hidden = $("drv-level").value !== "secondary"; });
 $("aim-text").addEventListener("input", e => { S.aim.text = e.target.value; renderDriverChart(); });
 $("aim-measure").addEventListener("change", e => { S.aim.measureId = e.target.value; renderDriverChart(); });
 $("drv-form").addEventListener("submit", e => {
   e.preventDefault();
-  const rec = { level: $("drv-level").value, text: $("drv-text").value.trim(), measureId: $("drv-measure").value, sources: checked("drv-sources"), parents: $("drv-level").value === "secondary" ? checked("drv-parents") : [] };
+  const rec = { level: $("drv-level").value, text: $("drv-text").value.trim(), measureId: $("drv-measure").value, sources: checked("drv-sources"), conditions: checked("drv-conds"), parents: $("drv-level").value === "secondary" ? checked("drv-parents") : [] };
   if (!rec.text) { $("drv-text").focus(); return; }
   if (editingDriver) { if (rec.parents.includes(editingDriver)) rec.parents = rec.parents.filter(x => x !== editingDriver); Object.assign(S.drivers.find(z => z.id === editingDriver), rec); if (rec.level === "primary") S.actions.forEach(a => { a.drivers = (a.drivers || []).filter(y => y !== editingDriver); }); }
   else S.drivers.push(Object.assign({ id: uid("d") }, rec));
@@ -1175,6 +1495,9 @@ function traceHtml(a) {
 // ---------- stage 8 ----------
 function tierOf(type) { return (type || "").split(":")[0]; }
 function renderActions() {
+  const keepAC = checked("act-conds");
+  $("act-conds").innerHTML = S.conditions.map(c => pick("act-conds", c.id, c.required)).join("") || '<span class="muted" style="font-size:.85rem">No process conditions yet. Add them in stage 3.</span>';
+  setChecked("act-conds", keepAC);
   const secs = S.drivers.filter(d => d.level === "secondary");
   $("act-drivers").innerHTML = secs.length ? secs.map(d => pick("act-drivers", d.id, d.text)).join("") : '<span class="muted" style="font-size:.85rem">No secondary drivers yet. Add them in the driver diagram (stage 7).</span>';
   $("act-stmt").innerHTML = '<option value="">Not linked</option>' + S.statements.map((st, i) => '<option value="' + esc(st.id) + '">Statement ' + (i + 1) + ": " + esc(st.cause.slice(0, 70)) + "</option>").join("");
@@ -1194,7 +1517,7 @@ function renderActions() {
   S.actions.forEach(a => {
     const k = tierOf(a.type), t = (a.type || "").split(":")[1] || "";
     const sIdx = S.statements.findIndex(st => st.id === a.stmt);
-    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><button type="button" class="quiet small" data-a="del">Delete</button></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p><div class="chips" data-m></div><div class="trace" data-trace></div></li>');
+    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p><div class="chips" data-c></div><div class="chips" data-m></div><div class="trace" data-trace></div></li>');
     li.querySelector(".chips").innerHTML = '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc((HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + " · " + t) + "</span>" + (sIdx >= 0 ? '<span class="chip">Statement ' + (sIdx + 1) + "</span>" : '<span class="chip gap">Not linked to a statement</span>');
     li.querySelector(".what").textContent = actionLabel(a) + ". " + a.text;
     li.querySelector(".muted").textContent = [a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due].filter(Boolean).join(" · ") || "No responsible role yet";
@@ -1208,6 +1531,10 @@ function renderActions() {
       mbox.appendChild(b);
     }
     li.querySelector("[data-trace]").innerHTML = traceHtml(a);
+    const cs = (a.conditions || []).map(condById).filter(Boolean);
+    li.querySelector("[data-c]").innerHTML = cs.length ? cs.map(c => '<span class="chip trace">Changes condition: ' + esc(c.required.slice(0, 60)) + (c.required.length > 60 ? "…" : "") + "</span>").join("") : '<span class="chip gap">No process condition named</span>';
+    if (a.test && a.test.decision) li.querySelector("[data-c]").insertAdjacentHTML("beforeend", '<span class="chip">Test record: ' + esc({ pending: "pending review", approved: "adopted", revised: "revised", declined: "declined" }[a.test.decision] || a.test.decision) + "</span>");
+    li.querySelector('[data-a="edit"]').addEventListener("click", () => startActionEdit(a.id));
     li.querySelector('[data-a="del"]').addEventListener("click", () => { S.actions = S.actions.filter(z => z.id !== a.id); S.failures.forEach(f => { f.actions = (f.actions || []).filter(x => x !== a.id); }); renderAll(); });
     ul.appendChild(li);
   });
@@ -1220,9 +1547,26 @@ $("act-form").addEventListener("submit", e => {
     if (!name) { $("act-measure-new").focus(); return; }
     mid = uid("m"); S.measures.push({ id: mid, name, percent: /%|percent/i.test(name), goal: null, events: [], points: [] });
   }
-  S.actions.push({ id: uid("a"), stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measureId: mid, start: $("act-start").value.trim(), drivers: checked("act-drivers") });
-  $("act-form").reset(); renderAll();
+  const rec = { stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measureId: mid, start: $("act-start").value.trim(), drivers: checked("act-drivers"), conditions: checked("act-conds"),
+    detail: { baseline: $("act-baseline").value.trim(), expected: $("act-expected").value.trim(), capacity: $("act-capacity").value.trim(), newDeps: $("act-newdeps").value.trim(), unintended: $("act-unintended").value.trim() },
+    test: { proposedBy: $("act-proposedby").value.trim(), authorizedBy: $("act-authby").value.trim(), limits: $("act-limits").value.trim(), executed: $("act-executed").value.trim(), changes: $("act-changes").value.trim(), consequences: $("act-consequences").value.trim(), reviewedBy: $("act-reviewedby").value.trim(), decision: $("act-decision").value } };
+  if (editingAction) Object.assign(S.actions.find(z => z.id === editingAction), rec); else S.actions.push(Object.assign({ id: uid("a") }, rec));
+  stopActionEdit(); renderAll();
 });
+const ACT_DETAIL = [["baseline", "act-baseline"], ["expected", "act-expected"], ["capacity", "act-capacity"], ["newDeps", "act-newdeps"], ["unintended", "act-unintended"]];
+const ACT_TEST = [["proposedBy", "act-proposedby"], ["authorizedBy", "act-authby"], ["limits", "act-limits"], ["executed", "act-executed"], ["changes", "act-changes"], ["consequences", "act-consequences"], ["reviewedBy", "act-reviewedby"]];
+function startActionEdit(id) {
+  const a = S.actions.find(z => z.id === id); if (!a) return;
+  editingAction = id; renderActions();
+  $("act-stmt").value = a.stmt || ""; $("act-type").value = a.type; $("act-text").value = a.text; $("act-owner").value = a.owner || ""; $("act-due").value = a.due || "";
+  $("act-measure").value = a.measureId && S.measures.some(m => m.id === a.measureId) ? a.measureId : ""; $("act-measure-new-wrap").hidden = true; $("act-start").value = a.start || "";
+  setChecked("act-drivers", a.drivers); setChecked("act-conds", a.conditions);
+  ACT_DETAIL.forEach(([k, el2]) => { $(el2).value = (a.detail || {})[k] || ""; }); ACT_TEST.forEach(([k, el2]) => { $(el2).value = (a.test || {})[k] || ""; }); $("act-decision").value = (a.test || {}).decision || "pending";
+  $("act-form-title").textContent = "Edit " + actionLabel(a).toLowerCase(); $("act-save").textContent = "Save changes"; $("act-cancel").hidden = false;
+  $("act-form").querySelectorAll("details.more").forEach(d => { d.open = true; }); $("act-text").focus();
+}
+function stopActionEdit() { editingAction = null; $("act-form").reset(); setChecked("act-drivers", []); setChecked("act-conds", []); $("act-form-title").textContent = "Add an action"; $("act-save").textContent = "Add action"; $("act-cancel").hidden = true; $("act-measure-new-wrap").hidden = true; }
+$("act-cancel").addEventListener("click", stopActionEdit);
 $("act-measure").addEventListener("change", () => { $("act-measure-new-wrap").hidden = $("act-measure").value !== "__new__"; if (!$("act-measure-new-wrap").hidden) $("act-measure-new").focus(); });
 function actionLabel(a) { return "Action " + (S.actions.indexOf(a) + 1); }
 function measureOf(a) { return a && a.measureId ? S.measures.find(m => m.id === a.measureId) || null : null; }
@@ -1248,6 +1592,8 @@ function renderRunInputs() {
   if (!m) return;
   $("run-select").value = m.id;
   $("run-name").value = m.name; $("run-goal").value = m.goal == null ? "" : m.goal; $("run-pct").checked = !!m.percent;
+  $("run-type").value = m.type || "process"; condOptions("run-cond", m.conditionId, "Not linked");
+  [["numerator", "run-num"], ["denominator", "run-den"], ["window", "run-window"], ["source", "run-source"], ["limits", "run-limits"]].forEach(([k, id]) => { $(id).value = m[k] || ""; });
   $("run-data").value = m.points.map(p => p[0] + ", " + p[1]).join("\n");
   $("run-notes").value = (m.events || []).map(n => n[0] + ", " + n[1]).join("\n");
 }
@@ -1261,7 +1607,8 @@ $("run-apply").addEventListener("click", () => {
   const m = currentMeasure(); if (!m) return;
   m.points = $("run-data").value.split("\n").map(l => l.split(",")).filter(p => p.length >= 2 && p[1].trim() !== "" && !isNaN(Number(p[1]))).map(p => [p[0].trim(), Number(p[1])]);
   m.events = $("run-notes").value.split("\n").map(l => { const i = l.indexOf(","); return i < 0 ? null : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }).filter(n => n && n[0] && n[1]);
-  m.percent = $("run-pct").checked;
+  m.percent = $("run-pct").checked; m.type = $("run-type").value; m.conditionId = $("run-cond").value;
+  [["numerator", "run-num"], ["denominator", "run-den"], ["window", "run-window"], ["source", "run-source"], ["limits", "run-limits"]].forEach(([k, id]) => { m[k] = $(id).value.trim(); });
   const g = $("run-goal").value.trim(); m.goal = g === "" || isNaN(Number(g)) ? null : Number(g);
   renderRunInputs(); renderRun(); renderActions(); renderOverview();
 });
@@ -1349,8 +1696,8 @@ function measureSummary(m) {
 function renderSummary() {
   const box = $("report"); if (!box) return;
   const steps = sortedSteps();
-  const noRecv = steps.filter(s => s.to && !S.steps.some(z => z.wait === s.id && z.role === s.to));
-  const unack = unacked(), unchk = unchecked(), uncl = unclaimed();
+  const noRecv = receiptNotEstablished();
+  const unack = ackNo(), ackU = ackUnknown(), unchk = unchecked(), uncl = unclaimed();
   const fms = S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1));
   const liveActs = id => S.actions.find(a => a.id === id);
   const fmNoAction = fms.filter(f => !(f.actions || []).some(liveActs));
@@ -1359,22 +1706,62 @@ function renderSummary() {
   const list = arr => arr.length <= 1 ? arr.join("") : arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
   const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
   let h = "";
-  h += '<header><p class="eyebrow">ICA Safety Improvement Review</p><h1>' + esc(S.event.title || "Untitled review") + '</h1><p class="sub">' + esc(S.event.setting || "") + (S.event.setting ? " · " : "") + "Prepared " + esc(new Date().toISOString().slice(0, 10)) + " · Fictional or de-identified data only</p></header>";
+  h += '<header><p class="eyebrow">ICA Safety Improvement Review</p><h1>' + esc(S.event.title || "Untitled review") + '</h1><p class="sub">' + esc(S.event.setting || "") + (S.event.setting ? " · " : "") + "Generated from the review data · Fictional or de-identified data only</p></header>";
 
   // Executive summary
   h += "<section><h2>Executive summary</h2>";
   if (S.event.summary) h += "<p>" + esc(S.event.summary) + "</p>";
   if (S.event.outcome) h += "<p><b>Outcome for the patient:</b> " + esc(S.event.outcome) + "</p>";
   h += "<p>The team's review records " + plural(steps.length, "step", "steps") + " across " + plural(S.roles.length, "role", "roles") + (S.roles.length ? " (" + esc(list(S.roles.map(r => r.name))) + ")" : "") + ". It records " +
-    plural(unack.length, "handoff that was not acknowledged", "handoffs that were not acknowledged") + ", " + plural(noRecv.length, "handoff with no step recorded as receiving it", "handoffs with no step recorded as receiving them") + ", " +
-    plural(unchk.length, "unchecked assumption", "unchecked assumptions") + ", and " + plural(uncl.length, "shared responsibility that no role believed was theirs", "shared responsibilities that no role believed were theirs") + ".</p></section>";
+    plural(unack.length, "handoff documented as not acknowledged", "handoffs documented as not acknowledged") + ", " + plural(ackU.length, "handoff whose acknowledgment is not established", "handoffs whose acknowledgment is not established") + ", " + plural(noRecv.length, "handoff whose receipt is not established", "handoffs whose receipt is not established") + ", " +
+    plural(unchk.length, "unchecked assumption", "unchecked assumptions") + ", and " + plural(uncl.length, "shared responsibility that no role claimed", "shared responsibilities that no role claimed") + ".</p></section>";
 
   // Where work did not connect
   if (noRecv.length || uncl.length) {
     h += "<section><h2>Where the work did not connect</h2>";
-    if (noRecv.length) h += "<p><b>Handoffs with no recorded receipt</b></p><ul>" + noRecv.map(s => "<li>" + esc(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + ": " + s.what) + (s.ack === "yes" ? " <span class=\"note\">(acknowledged, but no follow-up step recorded)</span>" : "") + "</li>").join("") + "</ul>";
-    if (uncl.length) h += "<p><b>Responsibilities no role believed were theirs</b></p><ul>" + uncl.map(d => "<li>" + esc(d.name) + "</li>").join("") + "</ul>";
+    if (noRecv.length) h += "<p><b>Handoffs whose receipt is not established</b> <span class=\"note\">(no step records taking them; this is missing evidence, not proof of failure)</span></p><ul>" + noRecv.map(s => "<li>" + esc(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + ": " + s.what) + (s.ack === "yes" ? " <span class=\"note\">(acknowledged, but no follow-up step recorded)</span>" : "") + "</li>").join("") + "</ul>";
+    if (uncl.length) h += "<p><b>Responsibilities no role claimed</b></p><ul>" + uncl.map(d => { const st = dutyStatus(d); return "<li>" + esc(d.name + ": " + st.label.toLowerCase()) + (st.conflictText ? ". " + esc(st.conflictText) : "") + (d.escalation ? ". Escalation arrangement: " + esc(d.escalation) : "") + "</li>"; }).join("") + "</ul>";
     h += "</section>";
+  }
+
+  // ICA conditions analysis
+  if (S.conditions.length || S.event.intended) {
+    const disc = S.conditions.filter(c => ["absent", "changed", "not_established", "disputed"].includes(c.status));
+    const byDomain = Object.keys(DOMAINS).map(k => [k, S.conditions.filter(c => c.domain === k)]).filter(x => x[1].length);
+    const pathText = c => { const p = condRefSteps(c); return p.length ? " (traced across " + p.map(z => "step " + stepNo(z.id)).join(", ") + ")" : ""; };
+    h += "<section><h2>ICA conditions analysis</h2>";
+    h += '<p class="note">Process conditions recorded by the team, grouped by provisional process domain. Observations, the team\'s interpretations and open questions are kept separate.</p>';
+    h += "<h3>A. Process conditions identified</h3>" + (S.event.intended ? "<p><b>Intended outcome of the process:</b> " + esc(S.event.intended) + "</p>" : "") +
+      (byDomain.length ? "<ul>" + byDomain.map(([k, list]) => "<li><b>" + esc(DOMAINS[k]) + ":</b> " + list.map(c => esc(c.required) + esc(pathText(c))).join("; ") + "</li>").join("") + "</ul>" : '<p class="note">No process conditions recorded.</p>');
+    h += "<h3>B. Observed discrepancies</h3>" + (disc.length ? "<ul>" + disc.map(c => "<li><b>" + esc(condStatusLabel(c)) + ":</b> " + esc(c.required) + (c.observed ? ". Observed: " + esc(c.observed) : "") + ' <span class="note">(' + esc(EV_STATUS[c.evStatus] || EV_STATUS.none) + ")</span></li>").join("") + "</ul>" : '<p class="note">No condition is recorded as absent, changed, disputed or not established.</p>');
+    const bLines = [];
+    unack.forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": documented as not acknowledged"));
+    ackU.forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": acknowledgment not established"));
+    noRecv.filter(s => s.ack === "yes").forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": acknowledged, but receipt by a step in the receiving role is not established"));
+    S.conditions.filter(c => c.domain === "handoff" && c.resolution !== "resolved").forEach(c => bLines.push("Unresolved across the boundary: " + c.required + pathText(c)));
+    h += "<h3>C. Boundary and transmission analysis</h3>" + (bLines.length ? "<ul>" + bLines.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul>" : '<p class="note">No unresolved handoffs recorded.</p>');
+    const fLines = [];
+    if (S.event.intended) fLines.push("Intended: " + S.event.intended + (S.event.outcome ? ". Recorded outcome: " + S.event.outcome : ""));
+    steps.filter(s => s.to && s.ack === "yes").forEach(s => {
+      const open = S.conditions.filter(c => (c.refs || []).some(r => r === "handoff:" + s.id || r === "step:" + s.id) && c.resolution !== "resolved" && c.status !== "present");
+      if (open.length) fLines.push("Step " + stepNo(s.id) + " (" + roleName(s.role) + " to " + roleName(s.to) + ") was acknowledged, so the handoff was procedurally complete, but " + open.map(c => c.required.charAt(0).toLowerCase() + c.required.slice(1)).join("; ") + " remained unresolved. Acknowledgment alone does not show the receiving role could perform the intended function.");
+    });
+    h += "<h3>D. Functional consequences</h3>" + (fLines.length ? "<ul>" + fLines.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul>" : '<p class="note">No procedural completions with unresolved conditions recorded.</p>');
+    h += "<h3>E. Improvement opportunities</h3>" + (disc.length ? "<ul>" + disc.map(c => { const L = condLinks(c); const parts = [];
+        if (L.actions.length) parts.push("actions: " + L.actions.map(a => actionLabel(a) + " (" + (HIERARCHY[tierOf(a.type)] ? HIERARCHY[tierOf(a.type)].label.replace(" actions", "").toLowerCase() : "") + ")").join(", "));
+        if (L.drivers.length) parts.push("drivers: " + L.drivers.map(d => d.text).join("; ")); if (L.failures.length) parts.push("failure modes: " + L.failures.map(f => f.mode).join("; ")); if (L.measures.length) parts.push("measures: " + L.measures.map(m => m.name).join("; "));
+        return "<li><b>" + esc(c.required) + "</b>: " + (parts.length ? esc(parts.join(" · ")) : '<span class="no">no action, driver, failure mode or measure linked</span>') + "</li>"; }).join("") + "</ul>" : '<p class="note">No discrepancies to link.</p>');
+    const counts = Object.keys(EV_STATUS).map(k => [EV_STATUS[k], S.conditions.filter(c => (c.evStatus || "none") === k).length]).filter(x => x[1]);
+    const lim = [];
+    if (counts.length) lim.push("Evidence behind the recorded conditions: " + counts.map(x => x[1] + " " + x[0].toLowerCase()).join(", ") + ".");
+    S.conditions.filter(c => c.status === "absent" && (!c.evStatus || c.evStatus === "none")).forEach(c => lim.push("Recorded as absent without evidence: " + c.required + "."));
+    const noEv = S.statements.filter(x => !x.evidence); if (noEv.length) lim.push(plural(noEv.length, "causal statement has", "causal statements have") + " no evidence recorded.");
+    S.conditions.filter(c => c.question).forEach(c => lim.push("Open question: " + c.question));
+    const inc = S.duties.filter(d => dutyStatus(d).incomplete); if (inc.length) lim.push("Responsibility answers are incomplete for: " + inc.map(d => d.name).join("; ") + ".");
+    if (S.event.unknowns) lim.push("Unknown or disputed at the start: " + S.event.unknowns + ".");
+    S.measures.filter(m => m.limits).forEach(m => lim.push("Measure limitation (" + m.name + "): " + m.limits + "."));
+    lim.push("Where a record is missing, the finding is reported as not established. An absent record is not evidence that something failed.");
+    h += "<h3>F. Evidence limitations</h3><ul>" + lim.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul></section>";
   }
 
   // Causal statements
@@ -1392,7 +1779,7 @@ function renderSummary() {
     h += "<section><h2>Improvement aim</h2>" + (S.aim.text ? "<p>" + esc(S.aim.text) + "</p>" : "");
     const ms = aimM ? measureSummary(aimM) : null;
     if (aimM && ms) {
-      h += '<p class="note">Measure: ' + esc(aimM.name) + "</p>";
+      h += '<p class="note">Measure: ' + esc(aimM.name) + " · " + esc({ process: "process measure", outcome: "outcome measure", balancing: "balancing measure", condition: "condition-specific measure" }[aimM.type || "process"]) + (aimM.numerator ? " · numerator: " + esc(aimM.numerator) : "") + (aimM.denominator ? " · denominator: " + esc(aimM.denominator) : "") + (aimM.window ? " · " + esc(aimM.window) : "") + (aimM.source ? " · source: " + esc(aimM.source) : "") + "</p>";
       h += '<div class="tiles"><div class="tile"><span class="k">Baseline median · ' + esc(ms.base[0][0] + "–" + ms.base[ms.base.length - 1][0]) + '</span><span class="v">' + fmtVal(aimM, ms.baseMed) + '</span></div>' +
         '<div class="tile"><span class="k">Recent median · ' + esc(ms.recent[0][0] + "–" + ms.recent[ms.recent.length - 1][0]) + '</span><span class="v">' + fmtVal(aimM, ms.recentMed) + "</span></div>" +
         (aimM.goal != null ? '<div class="tile goal"><span class="k">Goal</span><span class="v">' + fmtVal(aimM, aimM.goal) + "</span></div>" : "") + "</div>";
@@ -1414,14 +1801,16 @@ function renderSummary() {
   // Items requiring investigation
   const items = [];
   if (fmNoAction.length) items.push(plural(fmNoAction.length, "of the " + fms.length + " documented failure modes has", "of the " + fms.length + " documented failure modes have").replace(/^(\d+) of/, "$1 of") + " no linked action: " + list(fmNoAction.map(f => f.mode.charAt(0).toLowerCase() + f.mode.slice(1))) + ".");
-  if (noRecv.length) items.push(plural(noRecv.length, "handoff has", "handoffs have") + " no step recorded as receiving " + (noRecv.length === 1 ? "it" : "them") + ". Confirm with the roles involved what happened at each.");
+  if (noRecv.length) items.push(plural(noRecv.length, "handoff has", "handoffs have") + " receipt not established: no step records taking " + (noRecv.length === 1 ? "it" : "them") + ". Confirm with the roles involved what happened at each.");
+  const noCond = S.actions.filter(a => !(a.conditions || []).some(id => condById(id)));
+  if (noCond.length) items.push(plural(noCond.length, "action does", "actions do") + " not name the process condition " + (noCond.length === 1 ? "it is" : "they are") + " meant to change.");
   if (uncl.length) items.push(plural(uncl.length, "shared responsibility has", "shared responsibilities have") + " no role that believed it was theirs. Agree who owns " + (uncl.length === 1 ? "it" : "each") + ".");
   const statementsWeakOnly = S.statements.filter(st => { const acts = S.actions.filter(a => a.stmt === st.id); return acts.length && acts.every(a => tierOf(a.type) === "weaker"); });
   if (statementsWeakOnly.length) items.push(plural(statementsWeakOnly.length, "causal statement is", "causal statements are") + " addressed only by weaker actions that depend on people remembering.");
   const noMeasure = S.actions.filter(a => !measureOf(a));
   if (noMeasure.length) items.push(plural(noMeasure.length, "action has", "actions have") + " no measure, so " + (noMeasure.length === 1 ? "its" : "their") + " effect cannot be seen.");
   if (S.actions.length) items.push("The proposed changes may create new dependencies or failure modes of their own. Assess them prospectively, for example with an FMEA, before spreading them.");
-  if (S.measures.length) items.push("The measures show whether the process changed. They do not by themselves establish that patient outcomes, such as treatment delays, improved.");
+  if (S.measures.length) { const types = new Set(S.measures.map(m => m.type || "process")); items.push((types.has("outcome") ? "" : "All measures in this review are process or condition measures. ") + "They show whether the process changed. They do not by themselves establish that patient outcomes, such as treatment delays, improved, or that escalation capacity was preserved." + (types.has("balancing") ? "" : " No balancing measure is recorded.")); }
   if (items.length) h += "<section><h2>Items requiring investigation</h2><ul>" + items.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul></section>";
 
   h += '<footer class="note" style="border:0;padding:0">Prepared with ICA Safety Review from the team\'s own entries. The tool does not decide root causes, rate performance or determine fault. Methods follow IHI quality improvement tools and RCA²; not affiliated with or endorsed by IHI.</footer>';
@@ -1473,6 +1862,10 @@ function load(text) {
     const o = JSON.parse(text);
     if (!o || !Array.isArray(o.roles) || !Array.isArray(o.steps) || !o.event) throw new Error("not a review");
     if (!o.aim) o.aim = { text: "", measureId: "" };
+    if (!o.conditions) o.conditions = [];
+    if (!o.versions) o.versions = [];
+    if (!Array.isArray(o.conditions) || !Array.isArray(o.versions)) throw new Error("bad shape");
+    o.conditions = o.conditions.filter(c => c && c.id && c.required).map(c => Object.assign({ domain: "handoff", refs: [], observed: "", status: "unknown", evStatus: "none", evidence: "", at: "", resolution: "unknown", resNote: "", interpretation: "", question: "" }, c, { status: COND_STATUS[c.status] ? c.status : "unknown", domain: DOMAINS[c.domain] ? c.domain : "handoff" }));
     if (!o.drivers) o.drivers = [];
     if (!o.failures) o.failures = [];
     (o.actions || []).forEach(a => { if (!a.drivers) a.drivers = []; });
@@ -1482,7 +1875,7 @@ function load(text) {
       delete o.run;
     }
     const base = clone(SAMPLE); Object.keys(base).forEach(k => { if (o[k] === undefined) o[k] = Array.isArray(base[k]) ? [] : base[k]; });
-    S = o; selected = null; editing = null; selectedMeasure = null; editingFailure = null; editingDriver = null; renderAll(); $("load-msg").textContent = "Review loaded."; return true;
+    S = o; selected = null; editing = null; selectedMeasure = null; editingFailure = null; editingDriver = null; editingCondition = null; editingAction = null; traceCondition = ""; diffVersion = null; renderAll(); $("load-msg").textContent = "Review loaded."; return true;
   } catch (e) { $("load-msg").textContent = "That is not review data from this tool. Copy it again with Copy review data and paste the whole text."; return false; }
 }
 $("load-btn").addEventListener("click", () => { if (load($("load-paste").value)) $("load-paste").value = ""; });
@@ -1496,11 +1889,13 @@ function twoStep(btn, label, fn) {
 }
 twoStep($("reset-sample"), "Click again to replace this review", () => { S = clone(SAMPLE); selected = null; selectedMeasure = null; renderAll(); $("load-msg").textContent = "Example case loaded."; });
 twoStep($("reset-blank"), "Click again to clear everything", () => {
-  S = { version: 1, event: { title: "", setting: "", summary: "", outcome: "" }, roles: [], steps: [], duties: [], categories: SAMPLE.categories.slice(), causes: [], statements: [], actions: [], measures: [], aim: { text: "", measureId: "" }, drivers: [], failures: [] };
+  S = { version: 1, event: { title: "", setting: "", summary: "", outcome: "" }, roles: [], steps: [], duties: [], categories: SAMPLE.categories.slice(), causes: [], statements: [], actions: [], measures: [], aim: { text: "", measureId: "" }, drivers: [], failures: [], conditions: [], versions: [] };
   selected = null; renderAll(); $("load-msg").textContent = "Blank review started."; location.hash = "event";
 });
 
 window.addEventListener("beforeunload", () => {});
+// Read-only copy of the review for automated tests; it never leaves the browser.
+window.icaReviewData = () => clone(S);
 renderAll(); route();
 $("stmt-event").value = S.event.title ? S.event.title.toLowerCase() : "";
 })();
