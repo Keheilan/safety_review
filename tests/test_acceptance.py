@@ -37,7 +37,7 @@ def page(base_url):
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
         pg.goto(base_url + "#event")
-        pg.wait_for_selector("#overview .tally")
+        pg.wait_for_selector("nav.stages a[aria-current=page]")
         pg.errors = errors
         yield pg
         browser.close()
@@ -63,7 +63,8 @@ def test_1_required_conditions_at_a_step_and_handoff(page):
 
 
 def test_2_missing_evidence_is_not_confirmed_failure(page):
-    tallies = page.inner_text("#overview")
+    go(page, "summary")
+    tallies = page.text_content("#overview")
     assert "handoffs documented as not acknowledged" in tallies
     assert "handoffs with acknowledgment not established" in tallies
     text = report_text(page)
@@ -159,7 +160,8 @@ def test_old_review_files_still_load(page, base_url):
 
 
 def test_conditions_panel_shows_what_the_analysis_adds(page):
-    panel = page.inner_text("#adds-event")
+    go(page, "summary")
+    panel = page.inner_text("#report section.adds")
     assert "What the conditions analysis adds" in panel
     assert "Step 7 (19:00, Day nurse to Night nurse)" in panel and "Step 2 (15:20" not in panel
     assert "On-call surgical resident expected to act but could not" in panel
@@ -292,3 +294,138 @@ def test_p3_missing_and_incomplete_inputs_do_not_break_the_report(page, base_url
     go(page, "actions")
     assert "Starts at Week 99, which is not a data point yet" in page.inner_text("#act-list")
     assert page.errors == []
+
+
+# ---- Navigation UX revision ----
+
+STAGE_ORDER = ["event", "timeline", "lanes", "ownership", "causes", "risks", "drivers", "actions", "measure", "summary"]
+
+
+def test_nav_four_groups_in_order_with_existing_hashes(page):
+    groups = [g.strip() for g in page.locator("nav.stages .grp").all_inner_texts()]
+    assert [g.upper() for g in groups[:4]] == ["RECONSTRUCT", "ANALYZE", "IMPROVE", "REPORT"]
+    hrefs = page.eval_on_selector_all("nav.stages ol[aria-labelledby] a", "as => as.map(a => a.getAttribute('href'))")
+    assert hrefs == ["#" + s for s in STAGE_ORDER]
+    assert page.locator('nav.stages a[href="#save"]').count() == 1
+
+
+def test_active_stage_is_highlighted(page):
+    for stage in ["timeline", "risks", "summary"]:
+        go(page, stage)
+        current = page.eval_on_selector_all('nav.stages a[aria-current="page"]', "as => as.map(a => a.getAttribute('href'))")
+        assert current == ["#" + stage]
+    assert page.get_attribute("#top-summary", "aria-current") == "page"
+
+
+def test_sidebar_collapses_to_an_icon_rail(page):
+    go(page, "lanes")
+    before = page.locator(".content").bounding_box()["width"]
+    page.click("#side-collapse")
+    assert page.get_attribute("#side-collapse", "aria-expanded") == "false"
+    assert page.locator("#side").bounding_box()["width"] < 90
+    assert page.locator(".content").bounding_box()["width"] > before + 120
+    # labels stay available to assistive technology in the rail
+    assert page.locator('nav.stages a[href="#ownership"]').get_attribute("title") == "4. Shared responsibilities"
+    assert "Shared responsibilities" in page.text_content('nav.stages a[href="#ownership"]')
+    page.reload(); page.wait_for_selector("nav.stages a[aria-current=page]")
+    assert page.evaluate("document.body.classList.contains('rail')")
+    page.click("#side-collapse")
+    assert page.locator("#side").bounding_box()["width"] > 200
+
+
+def test_summary_reachable_from_every_stage(page):
+    for stage in STAGE_ORDER + ["save"]:
+        go(page, stage)
+        assert page.is_visible("#top-summary")
+    page.click("#top-summary")
+    page.wait_for_selector("#s-summary:not([hidden])")
+
+
+def test_entered_and_open_evidence_shown_separately_without_status(page):
+    meta = page.inner_text('nav.stages a[href="#timeline"] .meta')
+    assert "10 steps" in meta and "evidence open: 11" in meta
+    assert "evidence open" not in page.inner_text('nav.stages a[href="#drivers"] .meta')
+    side = page.inner_text("#side").lower()
+    for word in ["approved", "complete ", "completed", "safe ", "passed", "✓"]:
+        assert word not in side, word
+    assert "not an approval or a safety status" in side
+
+
+def test_event_page_shows_no_later_stage_findings(page):
+    ev = page.text_content("#s-event")
+    for phrase in ["What the conditions analysis adds", "unchecked assumptions", "not acknowledged", "failure modes with no action"]:
+        assert phrase not in ev, phrase
+    assert page.locator("#s-event .tally").count() == 0
+
+
+def test_contextual_links_open_the_source_record(page):
+    go(page, "actions")
+    page.click('#act-list [data-ref="action:a1"] a[data-goto="condition:k1"]')
+    page.wait_for_selector("#s-lanes:not([hidden])")
+    assert page.input_value("#trace-select") == "k1"
+    assert page.evaluate("document.activeElement.dataset.ref") == "condition:k1"
+    go(page, "risks")
+    page.click('#fm-table [data-ref="failure:f2"] a[data-goto="handoff:s7"]')
+    page.wait_for_selector("#s-lanes:not([hidden])")
+    assert "Patient handover" in page.inner_text("#step-detail")
+    assert page.evaluate("document.activeElement.dataset.id") == "s7"
+    go(page, "drivers")
+    page.click('#drv-list [data-ref="driver:p1"] a[data-goto="duty:d1"]')
+    page.wait_for_selector("#s-ownership:not([hidden])")
+    assert page.evaluate("document.activeElement.dataset.ref") == "duty:d1"
+
+
+def test_keyboard_skip_link_and_focus_moves_to_the_stage(page):
+    page.keyboard.press("Tab")
+    assert page.evaluate("document.activeElement.className") == "skip"
+    page.focus('nav.stages a[href="#causes"]')
+    page.keyboard.press("Enter")
+    page.wait_for_selector("#s-causes:not([hidden])")
+    assert page.evaluate("document.activeElement.closest('section') && document.activeElement.closest('section').id") == "s-causes"
+    assert page.evaluate("document.activeElement.tagName") == "H2"
+
+
+def test_back_and_forward_keep_unsaved_input(page):
+    go(page, "timeline")
+    page.fill("#st-what", "Draft step not yet saved")
+    page.click('nav.stages a[href="#lanes"]')
+    page.wait_for_selector("#s-lanes:not([hidden])")
+    page.go_back()
+    page.wait_for_selector("#s-timeline:not([hidden])")
+    assert page.input_value("#st-what") == "Draft step not yet saved"
+    assert page.eval_on_selector_all('nav.stages a[aria-current="page"]', "as => as.map(a => a.getAttribute('href'))") == ["#timeline"]
+    page.go_forward()
+    page.wait_for_selector("#s-lanes:not([hidden])")
+    assert page.evaluate("location.hash") == "#lanes"
+
+
+def test_small_screen_drawer(base_url):
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        pg = b.new_page(viewport={"width": 375, "height": 760}, has_touch=True)
+        errors = []
+        pg.on("pageerror", lambda e: errors.append(str(e)))
+        pg.goto(base_url + "#event")
+        pg.wait_for_selector("#menu-btn")
+        assert pg.is_visible("#menu-btn") and not pg.is_visible("#side")
+        for stage in STAGE_ORDER + ["save"]:
+            pg.evaluate(f"location.hash = '{stage}'")
+            pg.wait_for_selector(f"#s-{stage}:not([hidden])")
+            assert pg.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), stage
+        pg.evaluate("location.hash = 'event'"); pg.wait_for_selector("#s-event:not([hidden])")
+        pg.click("#menu-btn")
+        pg.wait_for_selector("#side", state="visible")
+        assert pg.get_attribute("#menu-btn", "aria-expanded") == "true"
+        assert pg.evaluate("document.activeElement.getAttribute('href')") == "#event"
+        pg.keyboard.press("Escape")
+        pg.wait_for_selector("#side", state="hidden")
+        assert pg.evaluate("document.activeElement.id") == "menu-btn"
+        pg.click("#menu-btn")
+        pg.wait_for_selector("#side", state="visible")
+        pg.click('nav.stages a[href="#measure"]')
+        pg.wait_for_selector("#s-measure:not([hidden])")
+        pg.wait_for_selector("#side", state="hidden")
+        assert pg.evaluate("document.activeElement.tagName") == "H2"
+        assert pg.inner_text("#menu-label") == "Measure"
+        assert errors == []
+        b.close()

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
 <style>
-/* Layout: a clinical review record. Sticky header with the six review stages, one stage visible at a time, a wide swimlane that scrolls inside its own frame. */
+/* Layout: a clinical review record. A left sidebar groups the ten stages (an icon rail when collapsed, a drawer on small screens); one stage is visible at a time; wide swimlanes scroll inside their own frame. */
 :root {
   --bg: #f6f7f5;
   --surface: #ffffff;
@@ -50,15 +50,65 @@ img { max-width: 100%; }
 body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
 .wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
-.top-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; padding-block: 14px 8px; }
-h1 { font-family: var(--f-head); font-weight: 600; font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
-h1 small { font-family: var(--f-body); font-weight: 400; font-size: 0.9rem; color: var(--muted); margin-left: 8px; letter-spacing: 0; }
-nav.stages { display: flex; gap: 4px; overflow-x: auto; padding-block: 0 10px; scrollbar-width: thin; }
-nav.stages a { flex: 0 0 auto; text-decoration: none; color: var(--muted); font-size: 0.92rem; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
-nav.stages a span { font-family: var(--f-mono); font-size: 0.78rem; margin-right: 6px; }
-nav.stages a:hover { color: var(--ink); border-color: var(--line); }
-nav.stages a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-row { display: flex; align-items: center; gap: 8px 16px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+.top-row h1 { flex: 1 1 auto; min-width: 0; }
+.top-tools { flex-wrap: nowrap; align-items: center; gap: 8px; }
+h1 { font-family: var(--f-head); font-weight: 600; font-size: 1.45rem; margin: 0; letter-spacing: -0.01em; }
+h1 small { font-family: var(--f-body); font-weight: 400; font-size: 0.88rem; color: var(--muted); margin-left: 8px; letter-spacing: 0; }
+a.btn.small { font-size: .85rem; padding: 4px 12px; }
+.skip { position: absolute; left: 8px; top: -60px; z-index: 50; background: var(--accent); color: var(--surface); padding: 8px 14px; border-radius: var(--r); font-weight: 700; text-decoration: none; }
+.skip:focus { top: 8px; }
+/* sidebar */
+.shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); align-items: start; }
+.content { min-width: 0; }
+.side { position: sticky; top: calc(var(--hdr, 56px) + env(safe-area-inset-top, 0px)); height: calc(100vh - var(--hdr, 56px)); height: calc(100dvh - var(--hdr, 56px)); overflow-y: auto; background: var(--surface); border-right: 1px solid var(--line); padding: 10px 10px 16px; display: flex; flex-direction: column; gap: 8px; }
+.side-head { display: flex; justify-content: flex-end; }
+#drawer-close { display: none; }
+nav.stages ol { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 2px; }
+nav.stages .grp { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 8px 8px 4px; }
+nav.stages a { display: grid; grid-template-columns: 1.9rem 1fr; column-gap: 6px; align-items: baseline; text-decoration: none; color: var(--ink); font-size: .92rem; padding: 6px 8px; border-radius: var(--r); border: 1px solid transparent; }
+nav.stages a .num { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); text-align: center; }
+nav.stages a .meta { grid-column: 2; font-size: .76rem; color: var(--muted); display: grid; line-height: 1.35; }
+nav.stages a .meta .open { color: var(--assume); }
+nav.stages a:hover { border-color: var(--line); }
+nav.stages a[aria-current="page"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+nav.stages a[aria-current="page"] .num { color: var(--accent); }
+.side-note { margin-top: auto; font-size: .74rem; color: var(--muted); padding: 8px; border-top: 1px solid var(--line); }
+.sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* icon rail */
+body.rail .shell { grid-template-columns: 64px minmax(0, 1fr); }
+body.rail .side { padding-inline: 6px; }
+body.rail .side-head { justify-content: center; }
+body.rail .side .lbl, body.rail .side .meta, body.rail .grp-t, body.rail .side-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.rail nav.stages .grp { height: 1px; background: var(--line); margin: 8px 6px; }
+body.rail nav.stages a { grid-template-columns: 1fr; justify-items: center; padding: 8px 0; }
+body.rail nav.stages a .num { font-size: .85rem; }
+body.rail .chev { display: inline-block; transform: rotate(180deg); }
+.menu-btn { display: none; }
+.scrim { display: none; }
+/* small screens: the menu becomes a drawer */
+@media (max-width: 899px) {
+  .shell { display: block; }
+  body.rail .shell { display: block; }
+  .menu-btn { display: inline-flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+  .top-row h1 small { display: none; }
+  .top-row h1 { font-size: 1.15rem; }
+  #case-chip { display: none; }
+  #side-collapse { display: none; }
+  #drawer-close { display: inline-block; }
+  .side, body.rail .side { position: fixed; top: 0; left: 0; bottom: 0; height: auto; width: min(300px, 86vw); z-index: 40; transform: translateX(-105%); visibility: hidden; padding: max(10px, env(safe-area-inset-top, 0px)) 10px 16px max(10px, env(safe-area-inset-left, 0px)); box-shadow: 0 0 30px rgba(0,0,0,.25); }
+  body.rail .side .lbl, body.rail .side .meta, body.rail .grp-t, body.rail .side-note { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+  body.rail nav.stages a { grid-template-columns: 1.9rem 1fr; justify-items: stretch; padding: 6px 8px; }
+  body.rail nav.stages .grp { height: auto; background: none; margin: 8px 8px 4px; }
+  body.drawer-open .side { transform: none; visibility: visible; }
+  .scrim { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.35); }
+}
+@media (prefers-reduced-motion: no-preference) { .side { transition: transform .2s ease, visibility 0s linear .2s; } body.drawer-open .side { transition: transform .2s ease, visibility 0s; } }
+.flash { outline: 3px solid var(--trace) !important; outline-offset: 3px; border-radius: var(--r); }
+a.rec { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.chip a.rec { color: inherit; }
+.chip:has(a.rec) { display: inline-block; }
 .notice { display: block; background: var(--assume-soft); border: 1px solid var(--assume); color: var(--ink); border-radius: var(--r); padding: 10px 14px; font-size: 0.9rem; margin-block: 16px 4px; }
 .notice b { color: var(--assume); }
 main { padding-block: 16px 64px; }
@@ -209,51 +259,73 @@ details.more[open] { display: grid; gap: 10px; padding-bottom: 10px; }
 .report .yes { color: var(--ok); font-weight: 700; } .report .no { color: var(--gap); font-weight: 700; }
 @media print {
   :root { --bg: #fff; --surface: #fff; --ink: #111; --muted: #444; --line: #bbb; --ok: #1d6b35; --gap: #a3261b; --accent: #155e66; color-scheme: light; }
-  body::before, header.top, .notice, footer, section.stage:not(#s-summary), #s-summary > .row, #sum-msg { display: none !important; }
+  body::before, header.top, .side, .scrim, .skip, .notice, footer, section.stage:not(#s-summary), #s-summary > .row, #sum-msg { display: none !important; }
   #s-summary { display: block !important; }
   main { padding: 0; }
+  .shell { display: block; }
   .report { border: 0; padding: 0; max-width: none; }
 }
 footer { border-top: 1px solid var(--line); padding-block: 20px 40px; color: var(--muted); font-size: 0.85rem; }
 footer p + p { margin-top: 6px; }
 a { color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .item, nav.stages a { transition: border-color .15s, background-color .15s; } }
+h2[tabindex]:focus { outline: none; }
+h2[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 </style>
 </head>
 <body>
 
 
-<header class="top">
-  <div class="wrap">
-    <div class="top-row">
-      <h1>ICA Safety Review <small>Event review with swimlanes, hidden assumptions and RCA</small></h1>
-      <div class="chips" id="case-chip"></div>
-    </div>
-    <nav class="stages" aria-label="Review stages">
-      <a href="#event"><span>1</span>Event</a>
-      <a href="#timeline"><span>2</span>Timeline</a>
-      <a href="#lanes"><span>3</span>Swimlanes</a>
-      <a href="#ownership"><span>4</span>Shared responsibilities</a>
-      <a href="#causes"><span>5</span>Causes</a>
-      <a href="#risks"><span>6</span>Risks (FMEA)</a>
-      <a href="#drivers"><span>7</span>Driver diagram</a>
-      <a href="#actions"><span>8</span>Actions</a>
-      <a href="#measure"><span>9</span>Measure</a>
-      <a href="#summary"><span>10</span>Summary</a>
-      <a href="#save"><span>·</span>Save and about</a>
-    </nav>
+<a class="skip" href="#main">Skip to the current stage</a>
+<header class="top" id="top">
+  <div class="top-row">
+    <button type="button" class="ghost small menu-btn" id="menu-btn" aria-expanded="false" aria-controls="side"><span aria-hidden="true">☰</span> <span id="menu-label">Stages</span></button>
+    <h1>ICA Safety Review <small>Event review with swimlanes, hidden assumptions and RCA</small></h1>
+    <div class="row top-tools"><span class="chips" id="case-chip"></span><a class="btn small" href="#summary" id="top-summary">Summary</a></div>
   </div>
 </header>
-
+<div class="shell">
+  <aside class="side" id="side" aria-label="Review stages">
+    <div class="side-head"><button type="button" class="quiet small" id="side-collapse" aria-expanded="true" aria-controls="side" title="Collapse the menu to numbers"><span aria-hidden="true" class="chev">«</span> <span class="lbl">Collapse menu</span></button><button type="button" class="quiet small" id="drawer-close" aria-label="Close the stage menu">×</button></div>
+    <nav class="stages" aria-label="Review stages">
+      <p class="grp" id="grp-reconstruct"><span class="grp-t">Reconstruct</span></p>
+      <ol aria-labelledby="grp-reconstruct">
+        <li><a href="#event" data-stage="event" title="1. Event"><span class="num" aria-hidden="true">1</span><span class="lbl">Event</span><span class="meta" data-meta="event"></span></a></li>
+        <li><a href="#timeline" data-stage="timeline" title="2. Timeline"><span class="num" aria-hidden="true">2</span><span class="lbl">Timeline</span><span class="meta" data-meta="timeline"></span></a></li>
+        <li><a href="#lanes" data-stage="lanes" title="3. Swimlanes"><span class="num" aria-hidden="true">3</span><span class="lbl">Swimlanes</span><span class="meta" data-meta="lanes"></span></a></li>
+        <li><a href="#ownership" data-stage="ownership" title="4. Shared responsibilities"><span class="num" aria-hidden="true">4</span><span class="lbl">Shared responsibilities</span><span class="meta" data-meta="ownership"></span></a></li>
+      </ol>
+      <p class="grp" id="grp-analyze"><span class="grp-t">Analyze</span></p>
+      <ol aria-labelledby="grp-analyze">
+        <li><a href="#causes" data-stage="causes" title="5. Causes"><span class="num" aria-hidden="true">5</span><span class="lbl">Causes</span><span class="meta" data-meta="causes"></span></a></li>
+        <li><a href="#risks" data-stage="risks" title="6. Risks (FMEA)"><span class="num" aria-hidden="true">6</span><span class="lbl">Risks (FMEA)</span><span class="meta" data-meta="risks"></span></a></li>
+        <li><a href="#drivers" data-stage="drivers" title="7. Driver diagram"><span class="num" aria-hidden="true">7</span><span class="lbl">Driver diagram</span><span class="meta" data-meta="drivers"></span></a></li>
+      </ol>
+      <p class="grp" id="grp-improve"><span class="grp-t">Improve</span></p>
+      <ol aria-labelledby="grp-improve">
+        <li><a href="#actions" data-stage="actions" title="8. Actions"><span class="num" aria-hidden="true">8</span><span class="lbl">Actions</span><span class="meta" data-meta="actions"></span></a></li>
+        <li><a href="#measure" data-stage="measure" title="9. Measure"><span class="num" aria-hidden="true">9</span><span class="lbl">Measure</span><span class="meta" data-meta="measure"></span></a></li>
+      </ol>
+      <p class="grp" id="grp-report"><span class="grp-t">Report</span></p>
+      <ol aria-labelledby="grp-report">
+        <li><a href="#summary" data-stage="summary" title="10. Summary"><span class="num" aria-hidden="true">10</span><span class="lbl">Summary</span><span class="meta" data-meta="summary"></span></a></li>
+      </ol>
+      <p class="grp util-grp"><span class="grp-t">Files</span></p>
+      <ol><li><a href="#save" data-stage="save" title="Save, load and about"><span class="num" aria-hidden="true">↧</span><span class="lbl">Save, load and about</span></a></li></ol>
+    </nav>
+    <p class="side-note">Under each stage: what has been entered, and evidence still open. These counts are not an approval or a safety status.</p>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="content">
 <div class="wrap">
   <div class="notice" role="note"><b>Fictional or de-identified cases only.</b> Do not enter names, record numbers, dates of birth or anything else that identifies a patient or staff member. Everything stays in this browser tab. Nothing is sent or saved unless you copy it out yourself.</div>
 </div>
 
-<main class="wrap">
+<main class="wrap" id="main" tabindex="-1">
 
 <!-- 1 EVENT -->
 <section class="stage" id="s-event" data-stage="event">
-  <div><p class="eyebrow">Stage 1</p><h2>What happened</h2></div>
+  <div><p class="eyebrow">Stage 1</p><h2 tabindex="-1">What happened</h2></div>
   <p class="lede">Describe the event in neutral words, by role and not by person. The review looks for how the system made the event possible, not for someone to blame.</p>
   <div class="cols">
     <div class="panel">
@@ -283,13 +355,11 @@ a { color: var(--accent); }
       <label for="ev-unknowns">Unknown or disputed conditions<input id="ev-unknowns"></label>
     </div>
   </details>
-  <div class="adds" id="adds-event"></div>
-  <div class="summary-grid" id="overview"></div>
 </section>
 
 <!-- 2 TIMELINE -->
 <section class="stage" id="s-timeline" data-stage="timeline" hidden>
-  <div><p class="eyebrow">Stage 2</p><h2>Build the timeline, one step at a time</h2></div>
+  <div><p class="eyebrow">Stage 2</p><h2 tabindex="-1">Build the timeline, one step at a time</h2></div>
   <p class="lede">For each step, answer the questions as the person in that role would have seen it at the time. The question about what they believed is the one that surfaces hidden assumptions. Every step appears in its role's lane in stage 3, with its handoffs and dependencies drawn as arrows.</p>
   <div class="cols">
     <form class="panel" id="step-form" autocomplete="off">
@@ -334,7 +404,7 @@ a { color: var(--accent); }
 
 <!-- 3 SWIMLANES -->
 <section class="stage" id="s-lanes" data-stage="lanes" hidden>
-  <div><p class="eyebrow">Stage 3</p><h2>Swimlanes and dependencies</h2></div>
+  <div><p class="eyebrow">Stage 3</p><h2 tabindex="-1">Swimlanes and dependencies</h2></div>
   <p class="lede">Each lane is a role. A handoff arrow ends at the step that received it. If no step in the receiving lane records taking it, the arrow ends at a question mark: that is where something may have been dropped. Select a step to see what it depended on and what depended on it.</p>
   <div class="legend">
     <span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--accent)"></circle></svg>Activity</span>
@@ -384,7 +454,7 @@ a { color: var(--accent); }
 
 <!-- 4 OWNERSHIP -->
 <section class="stage" id="s-ownership" data-stage="ownership" hidden>
-  <div><p class="eyebrow">Stage 4</p><h2>Shared responsibilities</h2></div>
+  <div><p class="eyebrow">Stage 4</p><h2 tabindex="-1">Shared responsibilities</h2></div>
   <p class="lede">List the tasks that more than one role touches. Then ask each role: did you believe this was yours, or another role's? A task nobody believed was theirs is an unclaimed step. Unclaimed steps often sit at the centre of an event and rarely show up in a single person's account. Open a responsibility below to record three further questions separately for each role: could it act, was it expected to act, and would it have to answer for the result. Unanswered questions are shown as incomplete, never as proof that nobody was responsible.</p>
   <div class="panel">
     <div class="scroll-x"><table class="duty" id="duty-table"></table></div>
@@ -398,7 +468,7 @@ a { color: var(--accent); }
 
 <!-- 5 CAUSES -->
 <section class="stage" id="s-causes" data-stage="causes" hidden>
-  <div><p class="eyebrow">Stage 5</p><h2>Causes</h2></div>
+  <div><p class="eyebrow">Stage 5</p><h2 tabindex="-1">Causes</h2></div>
   <p class="lede">Group contributing factors in a cause and effect diagram. For each factor, keep asking "Why?" and add the answer as a sub-cause, until a cause is specific enough to test a change against. Then write causal statements that link a cause to the event. The review team decides the causes; the tool only suggests factors from the timeline and checks the wording of each statement.</p>
   <div class="effect"><span><span class="eyebrow">Effect</span><br><b id="effect-title"></b></span><button class="ghost small" type="button" id="cat-edit-toggle">Edit categories</button></div>
   <div class="panel" id="cat-editor" hidden>
@@ -434,7 +504,7 @@ a { color: var(--accent); }
 
 <!-- 6 RISKS (FMEA) -->
 <section class="stage" id="s-risks" data-stage="risks" hidden>
-  <div><p class="eyebrow">Stage 6</p><h2>Risks: failure modes and effects (FMEA)</h2></div>
+  <div><p class="eyebrow">Stage 6</p><h2 tabindex="-1">Risks: failure modes and effects (FMEA)</h2></div>
   <p class="lede">Look ahead: where could this process fail next time? Each failure mode belongs to a step, a handoff or a shared responsibility already in this review, so the risks stay tied to the process as it actually works. The team rates each one; the tool only multiplies the team's ratings to rank them.</p>
   <div class="panel">
     <div class="item-head"><h3>Failure modes, sorted by RPN; read severity on its own</h3><span class="muted mono" id="fm-total"></span></div>
@@ -469,7 +539,7 @@ a { color: var(--accent); }
 
 <!-- 7 DRIVER DIAGRAM -->
 <section class="stage" id="s-drivers" data-stage="drivers" hidden>
-  <div><p class="eyebrow">Stage 7</p><h2>Driver diagram</h2></div>
+  <div><p class="eyebrow">Stage 7</p><h2 tabindex="-1">Driver diagram</h2></div>
   <p class="lede">The team's theory of change: the aim, the primary drivers that most directly affect it, the secondary drivers that feed them, and the change ideas to test. Change ideas are the actions in stage 8. Each driver records which findings from this review it came from, so every proposed change can be traced back to what the review found.</p>
   <div class="panel">
     <label for="aim-text">Aim <span class="hint">what will improve, by how much, for whom, and by when</span><textarea id="aim-text" rows="2"></textarea></label>
@@ -495,7 +565,7 @@ a { color: var(--accent); }
 
 <!-- 8 ACTIONS -->
 <section class="stage" id="s-actions" data-stage="actions" hidden>
-  <div><p class="eyebrow">Stage 8</p><h2>Actions</h2></div>
+  <div><p class="eyebrow">Stage 8</p><h2 tabindex="-1">Actions</h2></div>
   <p class="lede">Each causal statement should lead to at least one action. Actions that change the system, such as forcing functions or simpler processes, tend to hold up better than actions that rely on people remembering, such as training or a new policy. Link each action to the drivers it is meant to move and the failure modes it should reduce, then give it a measure and the point when its test starts. Stage 9 shows whether it made a difference.</p>
   <div class="strength" id="tiers"></div>
   <div class="cols">
@@ -541,7 +611,7 @@ a { color: var(--accent); }
 
 <!-- 7 MEASURE -->
 <section class="stage" id="s-measure" data-stage="measure" hidden>
-  <div><p class="eyebrow">Stage 9</p><h2>Did the actions work?</h2></div>
+  <div><p class="eyebrow">Stage 9</p><h2 tabindex="-1">Did the actions work?</h2></div>
   <p class="lede">Each action from stage 8 is a test of change. Choose a measure to see its run chart. The point where each linked action's test started is marked on the chart, so you can see whether the change made a difference. With 10 or more points the chart draws the median.</p>
   <div class="panel">
     <div class="row">
@@ -586,16 +656,17 @@ a { color: var(--accent); }
 <!-- 10 SUMMARY -->
 <section class="stage" id="s-summary" data-stage="summary" hidden>
   <div class="row" style="justify-content:space-between;align-items:center">
-    <p class="eyebrow">Stage 10 · Summary</p>
+    <h2 tabindex="-1" class="eyebrow" style="font-family:var(--f-body);font-size:.75rem">Stage 10 · Summary</h2>
     <div class="row" style="gap:8px"><button type="button" class="ghost small" id="sum-copy">Copy summary</button><button type="button" class="ghost small" id="sum-print" hidden>Print or save as PDF</button></div>
   </div>
   <p id="sum-msg" class="muted" aria-live="polite" style="font-size:.85rem"></p>
+  <details class="panel more glance"><summary>At a glance: counts from every stage</summary><p class="muted" style="font-size:.85rem">Each count links to the stage where its records are entered.</p><div class="summary-grid" id="overview"></div></details>
   <article class="report" id="report"></article>
 </section>
 
 <!-- SAVE / ABOUT -->
 <section class="stage" id="s-save" data-stage="save" hidden>
-  <div><h2>Save, load and about</h2></div>
+  <div><h2 tabindex="-1">Save, load and about</h2></div>
   <div class="cols">
     <div class="panel">
       <h3>Share the results</h3>
@@ -631,6 +702,8 @@ a { color: var(--accent); }
   <p>ICA Safety Review prototype. For fictional or de-identified cases only. Not a clinical decision tool. Not affiliated with or endorsed by the Institute for Healthcare Improvement.</p>
   <p>The example case is invented for demonstration.</p>
 </footer>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -840,24 +913,123 @@ function condOptions(sel, cur, none) { $(sel).innerHTML = '<option value="">' + 
 
 // ---------- routing ----------
 const STAGES = ["event", "timeline", "lanes", "ownership", "causes", "risks", "drivers", "actions", "measure", "summary", "save"];
-function route() {
-  let h = (location.hash || "").replace("#", "");
-  if (!STAGES.includes(h)) h = "event";
+function currentStage() { const h = (location.hash || "").replace("#", ""); return STAGES.includes(h) ? h : "event"; }
+function route(moved) {
+  const h = currentStage();
   document.querySelectorAll("section.stage").forEach(s => { s.hidden = s.dataset.stage !== h; });
-  document.querySelectorAll("nav.stages a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + h ? "page" : "false"));
+  document.querySelectorAll("nav.stages a").forEach(a => { if (a.dataset.stage === h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  const ts = $("top-summary"); if (h === "summary") ts.setAttribute("aria-current", "page"); else ts.removeAttribute("aria-current");
+  const lbl = document.querySelector('nav.stages a[data-stage="' + h + '"] .lbl');
+  $("menu-label").textContent = lbl ? lbl.textContent : "Stages";
+  document.title = (lbl ? lbl.textContent + " · " : "") + "ICA Safety Review";
   if (h === "lanes") renderLanes();
   if (h === "measure") renderRun();
   if (h === "drivers") renderDriverChart();
   if (h === "summary") renderSummary();
+  renderNavMeta();
+  if (moved) {
+    closeDrawer(false);
+    if (pendingFocus) { const r = pendingFocus; pendingFocus = null; focusRecord(r); }
+    else focusStageHeading(h);
+  }
 }
-window.addEventListener("hashchange", route);
+function focusStageHeading(h) { window.scrollTo(0, 0); const hd = document.querySelector("#s-" + h + " h2"); if (hd) hd.focus({ preventScroll: true }); }
+window.addEventListener("hashchange", () => route(true));
+
+// ---------- sidebar: groups, icon rail, drawer on small screens ----------
+function setHdr() { const t = $("top"); if (t) document.documentElement.style.setProperty("--hdr", t.offsetHeight + "px"); }
+setHdr(); window.addEventListener("resize", setHdr);
+try { new ResizeObserver(setHdr).observe($("top")); } catch (e) {}
+function setRail(on, save) {
+  document.body.classList.toggle("rail", on);
+  const b = $("side-collapse"); b.setAttribute("aria-expanded", on ? "false" : "true"); b.title = on ? "Expand the menu" : "Collapse the menu to numbers"; b.querySelector(".lbl").textContent = on ? "Expand menu" : "Collapse menu";
+  if (save) { try { localStorage.setItem("icaReviewRail", on ? "1" : "0"); } catch (e) {} }
+  window.dispatchEvent(new Event("resize"));
+}
+$("side-collapse").addEventListener("click", () => setRail(!document.body.classList.contains("rail"), true));
+try { if (localStorage.getItem("icaReviewRail") === "1") setRail(true, false); } catch (e) {}
+const drawerMq = window.matchMedia("(max-width: 899px)");
+function drawerOpen() { return document.body.classList.contains("drawer-open"); }
+function openDrawer() {
+  document.body.classList.add("drawer-open"); $("scrim").hidden = false; $("menu-btn").setAttribute("aria-expanded", "true");
+  document.querySelector(".content").inert = true; $("top").inert = true;
+  const a = document.querySelector('nav.stages a[aria-current="page"]') || document.querySelector("nav.stages a"); a.focus();
+}
+function closeDrawer(restore) {
+  if (!drawerOpen()) return;
+  document.body.classList.remove("drawer-open"); $("scrim").hidden = true; $("menu-btn").setAttribute("aria-expanded", "false");
+  document.querySelector(".content").inert = false; $("top").inert = false;
+  if (restore) $("menu-btn").focus();
+}
+$("menu-btn").addEventListener("click", openDrawer);
+$("drawer-close").addEventListener("click", () => closeDrawer(true));
+$("scrim").addEventListener("click", () => closeDrawer(true));
+document.addEventListener("keydown", e => {
+  if (!drawerOpen()) return;
+  if (e.key === "Escape") { e.preventDefault(); closeDrawer(true); return; }
+  if (e.key === "Tab") { const f = [...$("side").querySelectorAll("a, button")].filter(x => x.offsetParent !== null); if (!f.length) return;
+    if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); } }
+});
+(drawerMq.addEventListener ? drawerMq.addEventListener.bind(drawerMq, "change") : drawerMq.addListener.bind(drawerMq))(() => { if (!drawerMq.matches) closeDrawer(false); });
+// Choosing the stage already shown closes the drawer and moves focus to it, since no hash change follows.
+document.querySelectorAll('nav.stages a, #top-summary').forEach(a => a.addEventListener("click", () => { const st = a.getAttribute("href").slice(1); if (st === currentStage()) { closeDrawer(false); focusStageHeading(st); } }));
+
+// What has been entered, and evidence still open, per stage. Display only: counts from the existing analysis, no status or approval.
+function renderNavMeta() {
+  const E = S.event || {}, evFields = ["title", "setting", "summary", "outcome", "intended", "onset", "constraints", "evidenceSource", "unknowns"];
+  const filled = evFields.filter(k => E[k] && String(E[k]).trim()).length;
+  const answered = S.duties.filter(d => Object.values(d.claims || {}).some(Boolean)).length;
+  const stepOpen = ackUnknown().length + receiptUnknown().length + unchecked().length;
+  const condOpen = S.conditions.filter(c => ["not_established", "unknown", "disputed"].includes(c.status) || !c.evStatus || c.evStatus === "none").length;
+  const stmtOpen = S.statements.filter(x => !x.evidence).length;
+  const unrated = S.failures.filter(f => !rpnOf(f)).length, noM = S.actions.filter(a => !measureOf(a)).length, noDir = S.measures.filter(m => m.direction !== "up" && m.direction !== "down").length;
+  const M = {
+    event: [filled + " of " + evFields.length + " fields · " + plural2(S.roles.length, "role", "roles")],
+    timeline: [plural2(S.steps.length, "step", "steps"), stepOpen, "acknowledgments or receipts not established, and assumptions not checked"],
+    lanes: [plural2(S.conditions.length, "condition", "conditions"), condOpen, "conditions not established, unknown or disputed, or with no evidence recorded"],
+    ownership: [answered + " of " + plural2(S.duties.length, "responsibility", "responsibilities") + " answered"],
+    causes: [plural2(S.causes.length, "factor", "factors") + " · " + plural2(S.statements.length, "statement", "statements"), stmtOpen, "causal statements with no evidence recorded"],
+    risks: [plural2(S.failures.length, "failure mode", "failure modes") + (unrated ? " · " + unrated + " not rated" : "")],
+    drivers: [plural2(S.drivers.length, "driver", "drivers")],
+    actions: [plural2(S.actions.length, "action", "actions") + (noM ? " · " + noM + " without a measure" : "")],
+    measure: [plural2(S.measures.length, "measure", "measures") + (noDir ? " · " + noDir + " without a direction" : "")],
+    summary: ["built from the stages above"]
+  };
+  document.querySelectorAll("nav.stages .meta").forEach(m => { const v = M[m.dataset.meta]; if (!v) return;
+    m.innerHTML = '<span class="sr">: </span><span>' + esc(v[0]) + "</span>" + (v[1] ? '<span class="open" title="' + esc(v[2]) + '"><span class="sr">; </span>evidence open: ' + v[1] + '<span class="sr"> (' + esc(v[2]) + ")</span></span>" : ""); });
+}
+let metaTimer; document.addEventListener("input", () => { clearTimeout(metaTimer); metaTimer = setTimeout(renderNavMeta, 250); });
+
+// ---------- contextual links between source records in different stages ----------
+const REF_STAGE = { step: "lanes", handoff: "lanes", assumption: "lanes", condition: "lanes", duty: "ownership", cause: "causes", statement: "causes", failure: "risks", driver: "drivers", action: "actions", measure: "measure" };
+let pendingFocus = null;
+function recLink(ref, text) { const k = String(ref).split(":")[0]; return REF_STAGE[k] ? '<a class="rec" href="#' + REF_STAGE[k] + '" data-goto="' + esc(ref) + '">' + esc(text) + "</a>" : esc(text); }
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest("a[data-goto]"); if (!a) return;
+  const st = a.getAttribute("href").slice(1);
+  if (st === currentStage()) { e.preventDefault(); focusRecord(a.dataset.goto); } else pendingFocus = a.dataset.goto;
+});
+function focusRecord(ref) {
+  const [k, id] = String(ref).split(":");
+  let t = null;
+  if (["step", "handoff", "assumption"].includes(k)) { selected = id; renderLanes(); renderSteps(); t = $("lane-frame").querySelector('.step-dot[data-id="' + id + '"]'); }
+  else if (k === "condition") { traceCondition = id; renderConditions(); renderLanes(); t = document.querySelector('#cond-list [data-ref="condition:' + id + '"]'); }
+  else if (k === "measure") { selectedMeasure = id; renderRunInputs(); renderRun(); t = $("run-select"); }
+  else t = [...document.querySelectorAll("[data-ref]")].find(x => x.dataset.ref === ref) || null;
+  if (!t) { focusStageHeading(currentStage()); return; }
+  if (!t.hasAttribute("tabindex") && !/^(a|button|input|select|textarea)$/i.test(t.tagName)) t.setAttribute("tabindex", "-1");
+  t.scrollIntoView({ block: "center" }); t.focus({ preventScroll: true });
+  if (!(t instanceof SVGElement)) { t.classList.add("flash"); setTimeout(() => t.classList.remove("flash"), 2200); }
+}
 let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("s-lanes").hidden) renderLanes(); }, 150); });
 
 // ---------- render all ----------
 function renderAll() {
-  renderEvent(); renderRoles(); renderOverview(); renderAdds(); renderStepForm(); renderSteps(); renderVersions(); renderConditions(); renderLanes(); renderDuties();
+  renderEvent(); renderRoles(); renderOverview(); renderStepForm(); renderSteps(); renderVersions(); renderConditions(); renderLanes(); renderDuties();
   renderCauses(); renderStatements(); renderFailures(); renderDrivers(); renderActions(); renderRunInputs(); renderRun(); renderSummary();
   $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title ? (S.event.title.length > 48 ? S.event.title.slice(0, 46) + "…" : S.event.title) : "Untitled review") + "</span>";
+  renderNavMeta();
 }
 
 // ---------- stage 1 ----------
@@ -1097,9 +1269,9 @@ function renderDetail() {
   if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : "gap") + '">Handed to ' + esc(roleName(s.to)) + "</span>";
   down.forEach(d => { h += '<span class="chip accent">Step ' + stepNo(d.id) + " waited on this</span>"; });
   if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : s.ack === "no" ? "gap" : "assume") + '">Acknowledgment: ' + (s.ack === "yes" ? "confirmed" : s.ack === "no" ? "documented as not given" : "not established") + (s.ackEvidence ? " · evidence: " + esc(s.ackEvidence) : "") + "</span>" + (s.transfer ? '<span class="chip">Handed over: ' + esc(s.transfer) + "</span>" : "") + '<span class="chip ' + receiptOf(s).cls + '">Receipt: ' + esc(receiptOf(s).label) + "</span>" + (!linkedReceipt(s) && receiptOf(s).k !== "unknown" ? '<span class="chip">No later step in the receiving role is linked</span>' : "");
-  S.conditions.filter(c => (c.refs || []).some(r => r.endsWith(":" + s.id))).forEach(c => { h += '<span class="chip trace">Required: ' + esc(c.required) + " · " + esc(condStatusLabel(c)) + "</span>"; });
+  S.conditions.filter(c => (c.refs || []).some(r => r.endsWith(":" + s.id))).forEach(c => { h += '<span class="chip trace">Required: ' + recLink("condition:" + c.id, c.required) + " · " + esc(condStatusLabel(c)) + "</span>"; });
   const fms = S.failures.filter(f => f.target === "step:" + s.id || f.target === "handoff:" + s.id);
-  fms.forEach(f => { h += '<span class="chip gap">' + (f.workflow === "proposed" ? "Failure mode in the proposed workflow: " : "Failure mode: ") + esc(f.mode) + (f.sev ? " · severity " + f.sev : "") + (rpnOf(f) ? " · RPN " + rpnOf(f) : "") + "</span>"; });
+  fms.forEach(f => { h += '<span class="chip gap">' + (f.workflow === "proposed" ? "Failure mode in the proposed workflow: " : "Failure mode: ") + recLink("failure:" + f.id, f.mode) + (f.sev ? " · severity " + f.sev : "") + (rpnOf(f) ? " · RPN " + rpnOf(f) : "") + "</span>"; });
   h += '</div><div class="row"><button type="button" class="ghost small" id="detail-edit">Edit this step</button><button type="button" class="quiet small" id="detail-cond">Add a condition for this step</button></div>';
   box.innerHTML = h;
   $("detail-edit").addEventListener("click", () => startEdit(s.id));
@@ -1125,7 +1297,7 @@ function renderDuties() {
   let h = "<thead><tr><th>Responsibility</th>" + S.roles.map(r => "<th>" + esc(r.name) + "</th>").join("") + "<th>Result</th><th></th></tr></thead><tbody>";
   S.duties.forEach(d => {
     const st = dutyStatus(d);
-    h += "<tr><td><b>" + esc(d.name) + "</b></td>" + S.roles.map(r => {
+    h += '<tr data-ref="duty:' + esc(d.id) + '"><td><b>' + esc(d.name) + "</b></td>" + S.roles.map(r => {
       const v = d.claims[r.id] || "";
       return '<td><select data-d="' + esc(d.id) + '" data-r="' + esc(r.id) + '" aria-label="' + esc(r.name + ": " + d.name) + '"><option value=""' + (v === "" ? " selected" : "") + '>Not involved</option><option value="mine"' + (v === "mine" ? " selected" : "") + '>Mine</option><option value="theirs"' + (v === "theirs" ? " selected" : "") + '>Another role\'s</option><option value="unsure"' + (v === "unsure" ? " selected" : "") + ">Not sure</option></select></td>";
     }).join("") + '<td><span class="chip ' + st.cls + '">' + esc(st.label) + "</span>" + (st.conflictText ? ' <span class="chip assume">' + esc(st.conflictText) + "</span>" : "") + (st.incomplete ? ' <span class="chip">Incomplete: ' + st.incomplete + (st.incomplete === 1 ? " role" : " roles") + " not asked</span>" : "") + '</td><td><button type="button" class="quiet small" data-del="' + esc(d.id) + '">Remove</button></td></tr>';
@@ -1187,7 +1359,7 @@ function renderCauses() {
     const top = list.filter(z => !z.parent || !list.some(y => y.id === z.parent));
     const addLi = (z, depth) => {
       const li = el('<li style="padding-left:' + (depth * 16) + 'px"><span></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-a="why" title="Add a sub-cause: ask why">Why?</button><button type="button" class="quiet small" data-a="del" aria-label="Remove factor">×</button></span></li>');
-      li.querySelector("span").textContent = (depth ? "↳ " : "") + z.text;
+      li.querySelector("span").textContent = (depth ? "↳ " : "") + z.text; li.dataset.ref = "cause:" + z.id;
       li.querySelector('[data-a="del"]').addEventListener("click", () => { const gone = new Set([z.id]); let grew = true; while (grew) { grew = false; S.causes.forEach(y => { if (y.parent && gone.has(y.parent) && !gone.has(y.id)) { gone.add(y.id); grew = true; } }); } S.causes = S.causes.filter(y => !gone.has(y.id)); renderCauses(); });
       li.querySelector('[data-a="why"]').addEventListener("click", () => { whyParent = z.id; $("cause-cat").value = z.cat; $("cause-text").value = ""; $("cause-text").placeholder = "Why: " + z.text; $("cause-form-title").textContent = "Add a sub-cause"; $("cause-text").focus(); });
       ul.appendChild(li);
@@ -1261,10 +1433,10 @@ function renderStatements() {
     const n = S.actions.filter(a => a.stmt === st.id).length;
     const warns = lint(st).filter(l => l[0] === "warn");
     const li = el('<li class="item"><div class="item-head"><span class="eyebrow"></span><button type="button" class="quiet small">Delete</button></div><p class="statement"></p><div class="chips"></div></li>');
-    li.querySelector(".eyebrow").textContent = "Statement " + (i + 1);
+    li.querySelector(".eyebrow").textContent = "Statement " + (i + 1); li.dataset.ref = "statement:" + st.id;
     li.querySelector(".statement").textContent = "Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + ".";
     li.querySelector(".chips").innerHTML = '<span class="chip ' + (n ? "ok" : "gap") + '">' + (n ? n + (n === 1 ? " action" : " actions") : "No action yet") + "</span>" + (warns.length ? '<span class="chip assume">' + warns.length + " wording " + (warns.length === 1 ? "prompt" : "prompts") + "</span>" : "") +
-      (condById(st.conditionId) ? '<span class="chip trace">Condition: ' + esc(condById(st.conditionId).required.slice(0, 60)) + "</span>" : '<span class="chip">No condition linked</span>') +
+      (condById(st.conditionId) ? '<span class="chip trace">Condition: ' + recLink("condition:" + st.conditionId, condById(st.conditionId).required.slice(0, 60)) + "</span>" : '<span class="chip">No condition linked</span>') +
       (st.evidence ? '<span class="chip ok">Evidence: ' + esc(st.evidence) + "</span>" : '<span class="chip gap">No evidence recorded</span>') +
       (st.uncertainty ? '<span class="chip">Uncertainty: ' + esc(st.uncertainty) + "</span>" : "");
     li.querySelector("button").addEventListener("click", () => { S.statements = S.statements.filter(z => z.id !== st.id); S.actions.forEach(a => { if (a.stmt === st.id) a.stmt = ""; }); renderAll(); });
@@ -1324,6 +1496,7 @@ function renderConditions() {
   S.conditions.forEach(c => {
     const st = COND_STATUS[c.status] || ["Unknown", ""], path = condRefSteps(c), L = condLinks(c);
     const li = el('<li class="item"><div class="item-head"><span class="chips"></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="ghost small" data-a="trace">Show path</button><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div><div data-body style="display:grid;gap:6px"></div></li>');
+    li.dataset.ref = "condition:" + c.id;
     li.querySelector(".chips").innerHTML = '<span class="chip trace">' + esc(DOMAINS[c.domain] || c.domain) + '</span><span class="chip ' + st[1] + '">' + esc(st[0]) + '</span><span class="chip">' + esc(EV_STATUS[c.evStatus] || EV_STATUS.none) + '</span><span class="chip ' + (c.resolution === "resolved" ? "ok" : c.resolution === "unresolved" ? "gap" : "") + '">' + esc(c.resolution === "resolved" ? "Resolved" : c.resolution === "unresolved" ? "Unresolved" : "Resolution not known") + "</span>";
     let b = '<div class="cond-line"><span class="lbl">Required</span>' + esc(c.required) + "</div>";
     b += '<div class="cond-line"><span class="lbl">Observed</span>' + (c.observed ? esc(c.observed) : '<span class="muted">Not recorded</span>') + "</div>";
@@ -1332,8 +1505,8 @@ function renderConditions() {
     if (path.length) b += '<div class="cond-line"><span class="lbl">Traced across</span>' + path.map(z => "step " + stepNo(z.id) + " (" + esc(fmtTime(z.t) + ", " + roleName(z.role)) + ")").join(" → ") + "</div>";
     if (c.interpretation) b += '<div class="cond-line"><span class="lbl">Reviewer interpretation</span>' + esc(c.interpretation) + "</div>";
     if (c.question) b += '<div class="cond-line"><span class="lbl">Open question</span>' + esc(c.question) + "</div>";
-    const links = [].concat(L.statements.map(x => "Causal statement " + (S.statements.indexOf(x) + 1)), L.failures.map(f => "Failure mode: " + f.mode), L.drivers.map(d => "Driver: " + d.text), L.actions.map(a => actionLabel(a)), L.measures.map(m => "Measure: " + m.name));
-    b += '<div class="chips">' + (links.length ? links.map(t => '<span class="chip">' + esc(t.length > 70 ? t.slice(0, 68) + "…" : t) + "</span>").join("") : '<span class="chip gap">Not linked to any statement, driver, action or measure</span>') + "</div>";
+    const links = [].concat(L.statements.map(x => ["statement:" + x.id, "Causal statement " + (S.statements.indexOf(x) + 1)]), L.failures.map(f => ["failure:" + f.id, "Failure mode: " + f.mode]), L.drivers.map(d => ["driver:" + d.id, "Driver: " + d.text]), L.actions.map(a => ["action:" + a.id, actionLabel(a)]), L.measures.map(m => ["measure:" + m.id, "Measure: " + m.name]));
+    b += '<div class="chips">' + (links.length ? links.map(([r, t]) => '<span class="chip">' + recLink(r, t.length > 70 ? t.slice(0, 68) + "…" : t) + "</span>").join("") : '<span class="chip gap">Not linked to any statement, driver, action or measure</span>') + "</div>";
     li.querySelector("[data-body]").innerHTML = b;
     li.querySelector('[data-a="trace"]').addEventListener("click", () => { traceCondition = c.id; renderConditions(); location.hash = "lanes"; renderLanes(); $("lane-frame").scrollIntoView({ block: "center" }); });
     li.querySelector('[data-a="edit"]').addEventListener("click", () => startConditionEdit(c.id));
@@ -1428,9 +1601,9 @@ function renderFailures() {
   let h = "<thead><tr><th>Where</th><th>Failure mode</th><th>Causes</th><th>Effects</th><th>Roles affected</th><th>O</th><th>D</th><th>S</th><th>RPN</th><th>Actions</th><th></th></tr></thead><tbody>";
   rows.forEach(f => {
     const acts = (f.actions || []).map(id => S.actions.find(a => a.id === id)).filter(Boolean);
-    h += "<tr><td>" + esc(refLabel(f.target) || "No longer in this review") + (f.workflow === "proposed" ? '<br><span class="chip accent" style="margin-top:4px">Proposed workflow</span>' : "") + "</td><td><b>" + esc(f.mode) + "</b>" + (condById(f.conditionId) ? '<br><span class="chip trace" style="margin-top:4px">Weakens: ' + esc(condById(f.conditionId).required.slice(0, 60)) + "</span>" : "") + (f.safeguards ? '<br><span class="muted" style="font-size:.82rem">Safeguards: ' + esc(f.safeguards) + "</span>" : "") + "</td><td>" + esc(f.causes) + "</td><td>" + esc(f.effects) + "</td><td>" +
+    h += '<tr data-ref="failure:' + esc(f.id) + '"><td>' + (refLabel(f.target) ? recLink(f.target, refLabel(f.target)) : "No longer in this review") + (f.workflow === "proposed" ? '<br><span class="chip accent" style="margin-top:4px">Proposed workflow</span>' : "") + "</td><td><b>" + esc(f.mode) + "</b>" + (condById(f.conditionId) ? '<br><span class="chip trace" style="margin-top:4px">Weakens: ' + recLink("condition:" + f.conditionId, condById(f.conditionId).required.slice(0, 60)) + "</span>" : "") + (f.safeguards ? '<br><span class="muted" style="font-size:.82rem">Safeguards: ' + esc(f.safeguards) + "</span>" : "") + "</td><td>" + esc(f.causes) + "</td><td>" + esc(f.effects) + "</td><td>" +
       (f.roles || []).map(id => '<span class="chip">' + esc(roleName(id)) + "</span>").join(" ") + '</td><td class="mono">' + (f.occ || "–") + '</td><td class="mono">' + (f.det || "–") + '</td><td class="mono">' + (f.sev || "–") +
-      '</td><td class="rpn">' + (rpnOf(f) || '<span class="muted">not rated</span>') + "</td><td>" + (acts.length ? acts.map(a => '<span class="chip ' + (tierOf(a.type) === "weaker" ? "assume" : tierOf(a.type) === "stronger" ? "ok" : "accent") + '">' + esc(actionLabel(a)) + "</span>").join(" ") : '<span class="chip gap">No action</span>') +
+      '</td><td class="rpn">' + (rpnOf(f) || '<span class="muted">not rated</span>') + "</td><td>" + (acts.length ? acts.map(a => '<span class="chip ' + (tierOf(a.type) === "weaker" ? "assume" : tierOf(a.type) === "stronger" ? "ok" : "accent") + '">' + recLink("action:" + a.id, actionLabel(a)) + "</span>").join(" ") : '<span class="chip gap">No action</span>') +
       '</td><td><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-edit="' + esc(f.id) + '">Edit</button><button type="button" class="quiet small" data-del="' + esc(f.id) + '">Delete</button></span></td></tr>';
   });
   $("fm-table").innerHTML = h + "</tbody>";
@@ -1478,13 +1651,16 @@ function renderDrivers() {
   order.forEach(d => {
     const kids = S.actions.filter(a => (a.drivers || []).includes(d.id));
     const li = el('<li class="item"><div class="item-head"><span class="chips"></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div><p class="what"></p><div class="chips" data-x></div></li>');
+    li.dataset.ref = "driver:" + d.id;
     li.querySelector(".chips").innerHTML = '<span class="chip accent">' + (d.level === "primary" ? "Primary" : "Secondary") + "</span>" + (d.measureId && S.measures.some(m => m.id === d.measureId) ? '<span class="chip">Measured</span>' : "");
     li.querySelector(".what").textContent = d.text;
     let x = "";
-    if (d.level === "secondary") { const ps = (d.parents || []).map(id => S.drivers.find(z => z.id === id)).filter(Boolean); x += ps.length ? ps.map(p => '<span class="chip">Moves: ' + esc(p.text.slice(0, 50)) + "</span>").join("") : '<span class="chip gap">Not linked to a primary driver</span>'; x += kids.length ? kids.map(a => '<span class="chip">' + esc(actionLabel(a)) + "</span>").join("") : '<span class="chip gap">No change idea yet</span>'; }
+    if (d.level === "secondary") { const ps = (d.parents || []).map(id => S.drivers.find(z => z.id === id)).filter(Boolean); x += ps.length ? ps.map(p => '<span class="chip">Moves: ' + esc(p.text.slice(0, 50)) + "</span>").join("") : '<span class="chip gap">Not linked to a primary driver</span>'; x += kids.length ? kids.map(a => '<span class="chip">' + recLink("action:" + a.id, actionLabel(a)) + "</span>").join("") : '<span class="chip gap">No change idea yet</span>'; }
     const srcs = (d.sources || []).map(refLabel).filter(Boolean);
     x += srcs.length ? '<span class="chip ok">From ' + srcs.length + (srcs.length === 1 ? " finding" : " findings") + "</span>" : '<span class="chip assume">Not traced to a finding</span>';
     li.querySelector("[data-x]").innerHTML = x;
+    const from = (d.sources || []).filter(r => refLabel(r)).map(r => recLink(r, refLabel(r))).concat((d.conditions || []).filter(condById).map(id => recLink("condition:" + id, "Condition · " + condById(id).required)));
+    if (from.length) li.querySelector("[data-x]").insertAdjacentHTML("afterend", '<div class="trace"><div><b>From:</b> ' + from.join(" · ") + "</div></div>");
     li.querySelector('[data-a="edit"]').addEventListener("click", () => startDriverEdit(d.id));
     li.querySelector('[data-a="del"]').addEventListener("click", () => { S.drivers = S.drivers.filter(z => z.id !== d.id); S.drivers.forEach(z => { z.parents = (z.parents || []).filter(y => y !== d.id); }); S.actions.forEach(a => { a.drivers = (a.drivers || []).filter(y => y !== d.id); }); if (editingDriver === d.id) stopDriverEdit(); renderAll(); });
     ul.appendChild(li);
@@ -1574,10 +1750,10 @@ function traceHtml(a) {
   const ds = (a.drivers || []).map(id => S.drivers.find(d => d.id === id)).filter(Boolean);
   const prims = [...new Set(ds.flatMap(d => d.parents || []))].map(id => S.drivers.find(d => d.id === id)).filter(Boolean);
   const fms = S.failures.filter(f => (f.actions || []).includes(a.id));
-  const srcs = [...new Set(ds.concat(prims).flatMap(d => d.sources || []).concat(fms.map(f => "failure:" + f.id)).concat(a.stmt ? ["statement:" + a.stmt] : []))].map(refLabel).filter(Boolean);
+  const srcs = [...new Set(ds.concat(prims).flatMap(d => d.sources || []).concat(fms.map(f => "failure:" + f.id)).concat(a.stmt ? ["statement:" + a.stmt] : []))].filter(r => refLabel(r));
   const result = actionResult(a);
-  return '<div><b>Traced back to:</b> ' + (srcs.length ? srcs.map(t => esc(t)).join(" · ") : '<span class="muted">no findings linked yet</span>') + "</div>" +
-    "<div><b>Meant to move:</b> " + (ds.length ? ds.map(d => esc(d.text)).join(" · ") : '<span class="muted">no driver linked yet</span>') + "</div>" +
+  return '<div><b>Traced back to:</b> ' + (srcs.length ? srcs.map(r => recLink(r, refLabel(r))).join(" · ") : '<span class="muted">no findings linked yet</span>') + "</div>" +
+    "<div><b>Meant to move:</b> " + (ds.length ? ds.map(d => recLink("driver:" + d.id, d.text)).join(" · ") : '<span class="muted">no driver linked yet</span>') + "</div>" +
     "<div><b>Result so far:</b> " + esc(result) + "</div>";
 }
 
@@ -1607,7 +1783,8 @@ function renderActions() {
     const k = tierOf(a.type), t = (a.type || "").split(":")[1] || "";
     const sIdx = S.statements.findIndex(st => st.id === a.stmt);
     const li = el('<li class="item"><div class="item-head"><span class="chips"></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p><div class="chips" data-c></div><div class="chips" data-m></div><div class="trace" data-trace></div></li>');
-    li.querySelector(".chips").innerHTML = '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc((HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + " · " + t) + "</span>" + (sIdx >= 0 ? '<span class="chip">Statement ' + (sIdx + 1) + "</span>" : '<span class="chip gap">Not linked to a statement</span>');
+    li.dataset.ref = "action:" + a.id;
+    li.querySelector(".chips").innerHTML = '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc((HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + " · " + t) + "</span>" + (sIdx >= 0 ? '<span class="chip">' + recLink("statement:" + a.stmt, "Statement " + (sIdx + 1)) + "</span>" : '<span class="chip gap">Not linked to a statement</span>');
     li.querySelector(".what").textContent = actionLabel(a) + ". " + a.text;
     li.querySelector(".muted").textContent = [a.mechanism && "How it works: " + a.mechanism, a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due].filter(Boolean).join(" · ") || "No responsible role yet";
     if (!a.mechanism && MECH_PROMPT[t]) li.querySelector(".chips").insertAdjacentHTML("beforeend", '<span class="chip assume" title="' + esc(MECH_PROMPT[t]) + '">How it works not described</span>');
@@ -1622,7 +1799,7 @@ function renderActions() {
     }
     li.querySelector("[data-trace]").innerHTML = traceHtml(a);
     const cs = (a.conditions || []).map(condById).filter(Boolean);
-    li.querySelector("[data-c]").innerHTML = cs.length ? cs.map(c => '<span class="chip trace">Changes condition: ' + esc(c.required.slice(0, 60)) + (c.required.length > 60 ? "…" : "") + "</span>").join("") : '<span class="chip gap">No process condition named</span>';
+    li.querySelector("[data-c]").innerHTML = cs.length ? cs.map(c => '<span class="chip trace">Changes condition: ' + recLink("condition:" + c.id, c.required.slice(0, 60) + (c.required.length > 60 ? "…" : "")) + "</span>").join("") : '<span class="chip gap">No process condition named</span>';
     if (a.test && a.test.decision) li.querySelector("[data-c]").insertAdjacentHTML("beforeend", '<span class="chip">Test record: ' + esc({ pending: "pending review", approved: "adopted", revised: "revised", declined: "declined" }[a.test.decision] || a.test.decision) + "</span>");
     li.querySelector('[data-a="edit"]').addEventListener("click", () => startActionEdit(a.id));
     li.querySelector('[data-a="del"]').addEventListener("click", () => { S.actions = S.actions.filter(z => z.id !== a.id); S.failures.forEach(f => { f.actions = (f.actions || []).filter(x => x !== a.id); }); renderAll(); });

@@ -6,6 +6,8 @@ It builds role swimlanes from a timeline, shows handoffs and the steps that wait
 
 Process conditions record what had to be true for the work to function, what was observed, and the evidence, using six provisional process domains. Missing evidence is reported as "not established", never as a confirmed failure. A condition can be traced across several steps, linked to actions, drivers, failure modes and measures, and summarized in the report's conditions analysis. Saved workflow versions let a revised timeline be compared with the original without overwriting it.
 
+The ten stages sit in a left sidebar in four groups (Reconstruct, Analyze, Improve, Report). It collapses to a numbered rail for wide diagrams and becomes a drawer on small screens. Under each stage it shows what has been entered and how much evidence is still open; these counts are not an approval or a safety status. Records link to related records in other stages, and the Summary is one click away from every stage.
+
 How findings are kept honest:
 
 - A responsibility every answering role disclaimed is reported apart from one where no role claimed it and at least one role was unsure.
