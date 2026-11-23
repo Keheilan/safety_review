@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Guided patient-safety event review with role swimlanes, hidden assumptions, cause and effect, actions and run chart. For fictional or de-identified cases only.">
+<title>ICA Safety Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: a clinical review record. Sticky header with the six review stages, one stage visible at a time, a wide swimlane that scrolls inside its own frame. */
+:root {
+  --bg: #f6f7f5;
+  --surface: #ffffff;
+  --sunk: #eceeea;
+  --ink: #1d2a2e;
+  --muted: #5c6a6d;
+  --line: #d3d8d3;
+  --accent: #1f6f78;
+  --accent-soft: #dcecec;
+  --assume: #a8670a;
+  --assume-soft: #f7ead3;
+  --gap: #b23a2e;
+  --gap-soft: #f6dcd8;
+  --ok: #2f7a45;
+  --ok-soft: #dcefe1;
+  --lane-a: #f2f4f1;
+  --lane-b: #e9ece8;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-head: "Newsreader", Georgia, "Times New Roman", serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141b1d; --surface: #1b2427; --sunk: #222d30; --ink: #e4ebea; --muted: #9aa9aa; --line: #34423f;
+  --accent: #6fc0c7; --accent-soft: #1f3a3d; --assume: #e3a54a; --assume-soft: #3a2e1b; --gap: #ef8a7d; --gap-soft: #3d2420;
+  --ok: #7cc994; --ok-soft: #1e3526; --lane-a: #192225; --lane-b: #1e282b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141b1d; --surface: #1b2427; --sunk: #222d30; --ink: #e4ebea; --muted: #9aa9aa; --line: #34423f;
+  --accent: #6fc0c7; --accent-soft: #1f3a3d; --assume: #e3a54a; --assume-soft: #3a2e1b; --gap: #ef8a7d; --gap-soft: #3d2420;
+  --ok: #7cc994; --ok-soft: #1e3526; --lane-a: #192225; --lane-b: #1e282b; color-scheme: dark }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; padding-block: 14px 8px; }
+h1 { font-family: var(--f-head); font-weight: 600; font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
+h1 small { font-family: var(--f-body); font-weight: 400; font-size: 0.9rem; color: var(--muted); margin-left: 8px; letter-spacing: 0; }
+nav.stages { display: flex; gap: 4px; overflow-x: auto; padding-block: 0 10px; scrollbar-width: thin; }
+nav.stages a { flex: 0 0 auto; text-decoration: none; color: var(--muted); font-size: 0.92rem; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+nav.stages a span { font-family: var(--f-mono); font-size: 0.78rem; margin-right: 6px; }
+nav.stages a:hover { color: var(--ink); border-color: var(--line); }
+nav.stages a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+.notice { display: block; background: var(--assume-soft); border: 1px solid var(--assume); color: var(--ink); border-radius: var(--r); padding: 10px 14px; font-size: 0.9rem; margin-block: 16px 4px; }
+.notice b { color: var(--assume); }
+main { padding-block: 16px 64px; }
+section.stage { display: grid; gap: 18px; }
+h2 { font-family: var(--f-head); font-weight: 600; font-size: 1.45rem; margin: 0; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 0; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 68ch; }
+.eyebrow { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; align-items: start; }
+.cols > * { min-width: 0; }
+label { display: grid; gap: 4px; font-size: 0.88rem; font-weight: 700; }
+label .hint { font-weight: 400; color: var(--muted); }
+input, select, textarea { font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 7px 9px; width: 100%; min-width: 0; }
+textarea { min-height: 64px; resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, .step-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.row > label { flex: 1 1 160px; }
+button { font: inherit; font-size: 0.92rem; border-radius: var(--r); border: 1px solid var(--accent); background: var(--accent); color: var(--surface); padding: 7px 14px; cursor: pointer; font-weight: 700; }
+button.ghost { background: transparent; color: var(--accent); }
+button.quiet { background: transparent; color: var(--muted); border-color: var(--line); font-weight: 400; }
+button.danger { background: transparent; color: var(--gap); border-color: var(--gap); }
+button.small { font-size: 0.82rem; padding: 3px 9px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--line); background: var(--sunk); white-space: nowrap; }
+.chip.assume { background: var(--assume-soft); border-color: var(--assume); color: var(--assume); }
+.chip.gap { background: var(--gap-soft); border-color: var(--gap); color: var(--gap); }
+.chip.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.chip.accent { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+ul.plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.item { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 6px; background: var(--surface); }
+.item.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.item-head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.item-head .what { font-weight: 700; }
+.belief { font-size: 0.9rem; border-left: 3px solid var(--assume); padding-left: 8px; }
+.belief.checked { border-left-color: var(--ok); }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tally { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface); display: grid; gap: 2px; }
+.tally .n { font-family: var(--f-mono); font-size: 1.6rem; line-height: 1.1; }
+.tally.assume .n { color: var(--assume); } .tally.gap .n { color: var(--gap); } .tally.accent .n { color: var(--accent); }
+.tally .k { font-size: 0.85rem; color: var(--muted); }
+
+/* swimlane */
+.lane-frame { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.lane-frame svg { display: block; }
+.lane-frame text { font-family: var(--f-body); fill: var(--ink); }
+.lane-frame .axis { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
+.lane-frame .lane-label { font-size: 12.5px; font-weight: 700; }
+.step-dot { cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.85rem; color: var(--muted); align-items: center; }
+.legend svg { vertical-align: middle; margin-right: 4px; }
+.detail { border-left: 3px solid var(--accent); }
+
+/* duties */
+table.duty { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+table.duty th, table.duty td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
+table.duty th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+table.duty select { padding: 4px 6px; font-size: 0.85rem; min-width: 128px; }
+table.duty .chip { white-space: normal; }
+table.duty td:first-child { min-width: 180px; }
+.scroll-x { overflow-x: auto; }
+
+/* fishbone */
+.effect { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--r); padding: 12px 14px; }
+.effect b { color: var(--accent); }
+.bones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.bone { border-top: 3px solid var(--accent); background: var(--surface); border-radius: 0 0 var(--r) var(--r); border-left: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 10px 12px; display: grid; gap: 6px; align-content: start; }
+.bone h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+.bone li { font-size: 0.9rem; display: flex; justify-content: space-between; gap: 8px; }
+.suggest { border: 1px dashed var(--assume); background: var(--assume-soft); }
+.lint { font-size: 0.85rem; display: grid; gap: 4px; }
+.lint .warn { color: var(--assume); }
+.lint .pass { color: var(--ok); }
+.statement { font-family: var(--f-head); font-size: 1.05rem; }
+
+/* actions */
+.strength { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.tier { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface); display: grid; gap: 6px; align-content: start; }
+.tier h3 { display: flex; justify-content: space-between; }
+.tier.stronger { border-top: 4px solid var(--ok); } .tier.intermediate { border-top: 4px solid var(--accent); } .tier.weaker { border-top: 4px solid var(--assume); }
+.tier ul { margin: 0; padding-left: 18px; font-size: 0.86rem; color: var(--muted); }
+
+/* run chart */
+.chart-frame { overflow-x: auto; }
+.chart-frame text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
+
+footer { border-top: 1px solid var(--line); padding-block: 20px 40px; color: var(--muted); font-size: 0.85rem; }
+footer p + p { margin-top: 6px; }
+a { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .item, nav.stages a { transition: border-color .15s, background-color .15s; } }
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <h1>ICA Safety Review <small>Event review with swimlanes, hidden assumptions and RCA</small></h1>
+      <div class="chips" id="case-chip"></div>
+    </div>
+    <nav class="stages" aria-label="Review stages">
+      <a href="#event"><span>1</span>Event</a>
+      <a href="#timeline"><span>2</span>Timeline</a>
+      <a href="#lanes"><span>3</span>Swimlanes</a>
+      <a href="#ownership"><span>4</span>Shared responsibilities</a>
+      <a href="#causes"><span>5</span>Causes</a>
+      <a href="#actions"><span>6</span>Actions</a>
+      <a href="#measure"><span>7</span>Measure</a>
+      <a href="#save"><span>·</span>Save and about</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="notice" role="note"><b>Fictional or de-identified cases only.</b> Do not enter names, record numbers, dates of birth or anything else that identifies a patient or staff member. Everything stays in this browser tab. Nothing is sent or saved unless you copy it out yourself.</div>
+</div>
+
+<main class="wrap">
+
+<!-- 1 EVENT -->
+<section class="stage" id="s-event" data-stage="event">
+  <div><p class="eyebrow">Stage 1</p><h2>What happened</h2></div>
+  <p class="lede">Describe the event in neutral words, by role and not by person. The review looks for how the system made the event possible, not for someone to blame.</p>
+  <div class="cols">
+    <div class="panel">
+      <label for="ev-title">Short title <span class="hint">e.g. "Delayed treatment of a deteriorating patient"</span><input id="ev-title"></label>
+      <label for="ev-setting">Care setting <span class="hint">unit type, not a named hospital</span><input id="ev-setting"></label>
+      <label for="ev-summary">What happened <span class="hint">facts in order, no judgements</span><textarea id="ev-summary" rows="5"></textarea></label>
+      <label for="ev-outcome">Outcome for the patient <span class="hint">as known now</span><textarea id="ev-outcome" rows="2"></textarea></label>
+    </div>
+    <div class="panel">
+      <h3>Roles involved</h3>
+      <p class="muted" style="font-size:.9rem">Each role becomes a swimlane. Use roles such as "Night nurse" or "On-call resident", never names.</p>
+      <ul class="plain" id="role-list"></ul>
+      <div class="row">
+        <label for="role-new">Add a role<input id="role-new" placeholder="e.g. Respiratory therapist"></label>
+        <button id="role-add" type="button">Add role</button>
+      </div>
+    </div>
+  </div>
+  <div class="summary-grid" id="overview"></div>
+</section>
+
+<!-- 2 TIMELINE -->
+<section class="stage" id="s-timeline" data-stage="timeline" hidden>
+  <div><p class="eyebrow">Stage 2</p><h2>Build the timeline, one step at a time</h2></div>
+  <p class="lede">For each step, answer the questions as the person in that role would have seen it at the time. The question about what they believed is the one that surfaces hidden assumptions.</p>
+  <div class="cols">
+    <form class="panel" id="step-form" autocomplete="off">
+      <h3 id="step-form-title">Add a step</h3>
+      <div class="row">
+        <label for="st-role">Who acted<select id="st-role"></select></label>
+        <label for="st-time" style="flex:0 1 130px">Time<input id="st-time" type="time" required></label>
+        <label for="st-day" style="flex:0 1 110px">Day<select id="st-day"><option value="0">Day 1</option><option value="1">Day 2</option><option value="2">Day 3</option></select></label>
+      </div>
+      <label for="st-kind">Type of step <span class="hint">as on a flowchart</span><select id="st-kind"><option value="activity">Activity or task</option><option value="decision">Decision point (a yes/no question)</option><option value="start">Start of the process</option><option value="end">End of the process</option></select></label>
+      <label for="st-what">What did they do or notice? <span class="hint" id="st-what-hint">Describe it as it actually happened, not as it should have</span><input id="st-what" required></label>
+      <div class="row">
+        <label for="st-to">Did they hand anything to another role?<select id="st-to"></select></label>
+        <label for="st-ack">Was the handoff acknowledged?<select id="st-ack"><option value="unknown">Not known</option><option value="yes">Yes, confirmed back</option><option value="no">No</option></select></label>
+      </div>
+      <label for="st-wait">Were they waiting on an earlier step?<select id="st-wait"></select></label>
+      <label for="st-belief">What did they believe was true at that moment? <span class="hint">e.g. "The resident had already seen the result"</span><textarea id="st-belief" rows="2"></textarea></label>
+      <label for="st-checked">Was that belief checked?<select id="st-checked"><option value="no">No, it was assumed</option><option value="unknown">Not known</option><option value="yes">Yes, it was verified</option></select></label>
+      <div class="row"><button type="submit" id="st-save">Add step</button><button type="button" class="quiet" id="st-cancel" hidden>Cancel editing</button></div>
+    </form>
+    <div class="panel">
+      <div class="item-head"><h3>Steps in time order</h3><span class="muted" id="step-count"></span></div>
+      <ul class="plain" id="step-list"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3 SWIMLANES -->
+<section class="stage" id="s-lanes" data-stage="lanes" hidden>
+  <div><p class="eyebrow">Stage 3</p><h2>Swimlanes and dependencies</h2></div>
+  <p class="lede">Each lane is a role. Arrows show handoffs between roles and steps that waited on earlier ones. Select a step to see what it depended on and what depended on it.</p>
+  <div class="legend">
+    <span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--accent)"></circle></svg>Activity</span>
+    <span><svg width="18" height="18"><polygon points="9,1 17,9 9,17 1,9" fill="var(--accent)"></polygon></svg>Decision (yes/no)</span>
+    <span><svg width="24" height="16"><rect x="1" y="3" width="22" height="10" rx="5" fill="var(--accent)"></rect></svg>Start or end</span>
+    <span><svg width="18" height="18"><circle cx="9" cy="9" r="6" fill="var(--accent)"></circle><circle cx="9" cy="9" r="8.5" fill="none" stroke="var(--assume)" stroke-width="1.6" stroke-dasharray="3 2"></circle></svg>Unchecked assumption</span>
+    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--accent)" stroke-width="1.6"></line></svg>Acknowledged handoff</span>
+    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--gap)" stroke-width="1.6" stroke-dasharray="5 3"></line></svg>Handoff not acknowledged</span>
+    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1.5 3"></line></svg>Waited on</span>
+  </div>
+  <div class="lane-frame" id="lane-frame"></div>
+  <div class="cols">
+    <div class="panel detail" id="step-detail"><p class="muted">Select a step in the swimlanes.</p></div>
+    <div class="panel"><h3>Signals in this timeline</h3><ul class="plain" id="signal-list"></ul></div>
+  </div>
+</section>
+
+<!-- 4 OWNERSHIP -->
+<section class="stage" id="s-ownership" data-stage="ownership" hidden>
+  <div><p class="eyebrow">Stage 4</p><h2>Shared responsibilities</h2></div>
+  <p class="lede">List the tasks that more than one role touches. Then ask each role: did you believe this was yours, or another role's? A task nobody believed was theirs is an unclaimed step. Unclaimed steps often sit at the centre of an event and rarely show up in a single person's account.</p>
+  <div class="panel">
+    <div class="scroll-x"><table class="duty" id="duty-table"></table></div>
+    <div class="row">
+      <label for="duty-new">Add a shared responsibility<input id="duty-new" placeholder="e.g. Acting on a critical lab result"></label>
+      <button id="duty-add" type="button">Add</button>
+    </div>
+  </div>
+</section>
+
+<!-- 5 CAUSES -->
+<section class="stage" id="s-causes" data-stage="causes" hidden>
+  <div><p class="eyebrow">Stage 5</p><h2>Causes</h2></div>
+  <p class="lede">Group contributing factors in a cause and effect diagram. For each factor, keep asking "Why?" and add the answer as a sub-cause, until a cause is specific enough to test a change against. Then write causal statements that link a cause to the event. The review team decides the causes; the tool only suggests factors from the timeline and checks the wording of each statement.</p>
+  <div class="effect"><span><span class="eyebrow">Effect</span><br><b id="effect-title"></b></span><button class="ghost small" type="button" id="cat-edit-toggle">Edit categories</button></div>
+  <div class="panel" id="cat-editor" hidden>
+    <label for="cat-text">Categories, one per line <span class="hint">five or six; the classic set is People, Methods, Materials, Equipment, Environment</span><textarea id="cat-text" rows="6"></textarea></label>
+    <div class="row"><button type="button" id="cat-save">Save categories</button></div>
+  </div>
+  <div class="bones" id="bones"></div>
+  <div class="cols">
+    <div class="panel suggest"><h3>Suggested from the timeline</h3><p class="muted" style="font-size:.88rem">Unchecked assumptions, unacknowledged handoffs and unclaimed responsibilities. Add one only if the team agrees it contributed.</p><ul class="plain" id="suggest-list"></ul></div>
+    <form class="panel" id="cause-form" autocomplete="off">
+      <h3 id="cause-form-title">Add a contributing factor</h3>
+      <label for="cause-cat">Category<select id="cause-cat"></select></label>
+      <label for="cause-text">Factor<input id="cause-text" required placeholder="e.g. Critical results phoned to whoever answers the unit phone"></label>
+      <div class="row"><button type="submit">Add factor</button></div>
+    </form>
+  </div>
+  <div class="cols">
+    <form class="panel" id="stmt-form" autocomplete="off">
+      <h3>Write a causal statement</h3>
+      <p class="muted" style="font-size:.88rem">Pattern: because of <i>a cause</i>, <i>an effect</i> happened, which increased the likelihood of <i>the event</i>.</p>
+      <label for="stmt-cause">Because…<textarea id="stmt-cause" rows="2" required></textarea></label>
+      <label for="stmt-effect">…this happened…<textarea id="stmt-effect" rows="2" required></textarea></label>
+      <label for="stmt-event">…which increased the likelihood of…<input id="stmt-event" required></label>
+      <div class="lint" id="stmt-lint" aria-live="polite"></div>
+      <div class="row"><button type="submit">Add statement</button></div>
+    </form>
+    <div class="panel"><h3>Causal statements</h3><ul class="plain" id="stmt-list"></ul></div>
+  </div>
+</section>
+
+<!-- 6 ACTIONS -->
+<section class="stage" id="s-actions" data-stage="actions" hidden>
+  <div><p class="eyebrow">Stage 6</p><h2>Actions</h2></div>
+  <p class="lede">Each causal statement should lead to at least one action. Actions that change the system, such as forcing functions or simpler processes, tend to hold up better than actions that rely on people remembering, such as training or a new policy.</p>
+  <div class="strength" id="tiers"></div>
+  <div class="cols">
+    <form class="panel" id="act-form" autocomplete="off">
+      <h3>Add an action</h3>
+      <label for="act-stmt">Addresses causal statement<select id="act-stmt"></select></label>
+      <label for="act-type">Type of action<select id="act-type"></select></label>
+      <label for="act-text">Action<textarea id="act-text" rows="2" required></textarea></label>
+      <div class="row">
+        <label for="act-owner">Responsible role<input id="act-owner" placeholder="e.g. Nurse manager"></label>
+        <label for="act-due" style="flex:0 1 170px">Target date<input id="act-due" type="date"></label>
+      </div>
+      <label for="act-measure">How you will know it worked<input id="act-measure" placeholder="e.g. % critical results acknowledged within 30 minutes"></label>
+      <div class="row"><button type="submit">Add action</button></div>
+    </form>
+    <div class="panel"><h3>Action plan</h3><ul class="plain" id="act-list"></ul></div>
+  </div>
+</section>
+
+<!-- 7 MEASURE -->
+<section class="stage" id="s-measure" data-stage="measure" hidden>
+  <div><p class="eyebrow">Stage 7</p><h2>Measure: run chart</h2></div>
+  <p class="lede">Track one measure over time, in the order the data were collected. With 10 or more points the chart draws the median. Mark when each test of change started, and any outside event that may have affected the process, so the effect of changes is easy to see.</p>
+  <div class="panel">
+    <label for="run-name">Measure<input id="run-name"></label>
+    <div class="chart-frame" id="run-chart"></div>
+    <div id="run-signals" class="chips"></div>
+    <p class="muted" style="font-size:.85rem">Shift and trend signals use common run chart rules: six or more points in a row on one side of the median is a shift; five or more points in a row going the same direction is a trend. These rules are not part of the IHI run chart instructions this tool follows, and are signals to discuss, not proof.</p>
+  </div>
+  <div class="panel">
+    <label class="row" style="align-items:center;gap:8px;font-weight:400" for="run-pct"><input id="run-pct" type="checkbox" style="width:auto"> This measure is a percentage (keep the scale within 0 to 100)</label>
+    <label for="run-data">Data points, one per line as "label, value"<textarea id="run-data" rows="8" class="mono"></textarea></label>
+    <label for="run-notes">Tests of change and outside events, one per line as "label, note" <span class="hint">the label must match a data point</span><textarea id="run-notes" rows="3" class="mono"></textarea></label>
+    <div class="row"><button type="button" id="run-apply">Update chart</button></div>
+  </div>
+</section>
+
+<!-- SAVE / ABOUT -->
+<section class="stage" id="s-save" data-stage="save" hidden>
+  <div><h2>Save, load and about</h2></div>
+  <div class="cols">
+    <div class="panel">
+      <h3>Save this review</h3>
+      <p class="muted" style="font-size:.9rem">Nothing is saved automatically. Copy the review and keep it somewhere your organization approves for quality-review records.</p>
+      <div class="row"><button type="button" id="copy-json">Copy review data</button><button type="button" class="ghost" id="copy-report">Copy summary report</button></div>
+      <p id="copy-msg" class="muted" aria-live="polite"></p>
+      <textarea id="copy-fallback" rows="5" class="mono" hidden aria-label="Copied text"></textarea>
+    </div>
+    <div class="panel">
+      <h3>Load a review</h3>
+      <label for="load-file">Open a saved review file<input id="load-file" type="file" accept=".json,application/json,text/plain"></label>
+      <label for="load-paste">Or paste review data<textarea id="load-paste" rows="4" class="mono"></textarea></label>
+      <div class="row"><button type="button" id="load-btn">Load pasted data</button></div>
+      <div class="row"><button type="button" class="quiet" id="reset-sample">Reload the example case</button><button type="button" class="danger" id="reset-blank">Start a blank review</button></div>
+      <p id="load-msg" class="muted" aria-live="polite"></p>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>About this tool</h3>
+    <p>This is an early prototype built on the ICA Project Cloud model: each role is a workstream with its own lane, a shared responsibility is a constraint several workstreams touch, and handoffs are exchanges across lane boundaries. A review shows where independently organized work met and failed to connect.</p>
+    <p>The methods follow quality improvement tools described by the Institute for Healthcare Improvement (cause and effect diagram, flowchart and run chart, from the QI Essentials Toolkit) and the RCA² approach to root cause analysis, including its rules for causal statements and its action hierarchy. All wording here is original. This tool is not affiliated with or endorsed by IHI. The original materials are at <a href="https://www.ihi.org" target="_blank" rel="noopener">ihi.org</a>.</p>
+    <p>The tool records what people tell it. It does not decide root causes, rate anyone's performance, or determine fault.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>ICA Safety Review prototype. For fictional or de-identified cases only. Not a clinical decision tool. Not affiliated with or endorsed by the Institute for Healthcare Improvement.</p>
+  <p>The example case is invented for demonstration.</p>
+</footer>
+
+<script>
+(function () {
+"use strict";
+
+// ---------- example case (fictional) ----------
+const SAMPLE = {
+  version: 1,
+  event: {
+    title: "Delayed treatment of a deteriorating patient after surgery",
+    setting: "Adult surgical ward, evening into night",
+    summary: "A patient on day 2 after abdominal surgery developed a fever and fast heart rate in the afternoon. A critical lab result was phoned to the ward but did not reach anyone who could act on it. An antibiotic order waited on an allergy question. The patient was treated for sepsis after a rapid response call at night, about seven hours after the first abnormal observations.",
+    outcome: "Transferred to intensive care overnight. Recovered and discharged later."
+  },
+  roles: [
+    { id: "r1", name: "Day nurse" }, { id: "r2", name: "Charge nurse" }, { id: "r3", name: "On-call surgical resident" },
+    { id: "r4", name: "Laboratory" }, { id: "r5", name: "Pharmacy" }, { id: "r6", name: "Night nurse" }, { id: "r7", name: "Rapid response team" }
+  ],
+  steps: [
+    { id: "s1", role: "r1", t: 850, kind: "start", what: "Recorded temperature 38.4 °C and heart rate 112; early warning score rose", to: "r3", ack: "unknown", wait: "", belief: "The resident reviewed this patient at noon and already knows about the trend", checked: "no" },
+    { id: "s2", role: "r3", t: 920, what: "Saw the page after leaving theatre; ordered lactate and blood cultures by phone", to: "r4", ack: "yes", wait: "s1", belief: "The nurse will call again if the patient gets worse", checked: "no" },
+    { id: "s3", role: "r3", t: 935, what: "Ordered an antibiotic", to: "r5", ack: "unknown", wait: "s2", belief: "Pharmacy will verify the order quickly", checked: "no" },
+    { id: "s4", role: "r5", t: 1010, kind: "decision", what: "Can the antibiotic be released with the allergy recorded as it is? No: order held, because the record listed penicillin without a reaction type", to: "r1", ack: "no", wait: "s3", belief: "The ward will page the prescriber about the allergy", checked: "no" },
+    { id: "s5", role: "r4", t: 1010, what: "Lactate result 3.8 mmol/L; phoned the critical result to the ward", to: "r2", ack: "yes", wait: "s2", belief: "The person answering the phone will pass it to the patient's nurse", checked: "no" },
+    { id: "s6", role: "r2", t: 1015, what: "Took the critical result call and wrote it on the ward board", to: "r1", ack: "no", wait: "s5", belief: "The day nurse will see the board", checked: "no" },
+    { id: "s7", role: "r1", t: 1140, what: "Gave handover to the night nurse; lactate and held antibiotic not mentioned", to: "r6", ack: "yes", wait: "", belief: "The lactate had already been acted on", checked: "no" },
+    { id: "s8", role: "r6", t: 1300, what: "Found blood pressure 84/50 and the patient confused; called the rapid response team", to: "r7", ack: "yes", wait: "", belief: "", checked: "unknown" },
+    { id: "s9", role: "r7", t: 1310, what: "Assessed the patient and started sepsis treatment", to: "r3", ack: "yes", wait: "s8", belief: "", checked: "unknown" },
+    { id: "s10", role: "r5", t: 1325, kind: "end", what: "Allergy clarified with the resident; antibiotic released and given", to: "", ack: "unknown", wait: "s9", belief: "", checked: "yes" }
+  ],
+  duties: [
+    { id: "d1", name: "Acting on the critical lactate result", claims: { r1: "theirs", r2: "theirs", r3: "theirs", r4: "theirs" } },
+    { id: "d2", name: "Resolving the antibiotic allergy question", claims: { r1: "unsure", r3: "theirs", r5: "theirs" } },
+    { id: "d3", name: "Escalating when the early warning score rises", claims: { r1: "mine", r3: "unsure", r2: "unsure" } }
+  ],
+  categories: ["People", "Methods", "Materials", "Equipment", "Environment"],
+  causes: [
+    { id: "c1", cat: "Methods", text: "Critical results are phoned to whoever answers the unit phone" },
+    { id: "c1a", cat: "Methods", parent: "c1", text: "No read-back to the nurse responsible for the patient" },
+    { id: "c2", cat: "Methods", text: "Handover template has no field for pending results or held medications" },
+    { id: "c3", cat: "Equipment", text: "Allergy record allows an entry without a reaction type" },
+    { id: "c4", cat: "People", text: "Resident covering theatre and the ward at the same time" },
+    { id: "c5", cat: "Environment", text: "Critical results written on a shared ward board" }
+  ],
+  statements: [
+    { id: "x1", cause: "critical lab results are phoned to whoever answers the unit phone, with no read-back to the nurse responsible for the patient", effect: "the raised lactate did not reach anyone able to act on it for over three hours", event: "delayed treatment of sepsis" },
+    { id: "x2", cause: "the handover template has no field for pending results or held medications", effect: "the night nurse was not told about the lactate or the held antibiotic", event: "delayed treatment of sepsis" }
+  ],
+  actions: [
+    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measure: "% critical results acknowledged by the responsible nurse within 30 minutes" },
+    { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measure: "% handovers that include pending results (audit of 10 per week)" },
+    { id: "a3", stmt: "x1", type: "weaker:Training", text: "Remind staff of the critical result policy at the safety huddle", owner: "Charge nurses", due: "", measure: "" }
+  ],
+  run: {
+    name: "% critical results acknowledged by the responsible nurse within 30 minutes (example data)",
+    percent: true,
+    notes: [["Wk 7","PDSA 1: results sent to nurse's phone"],["Wk 9","PDSA 2: new handover template"]],
+    points: [["Wk 1",52],["Wk 2",48],["Wk 3",55],["Wk 4",50],["Wk 5",47],["Wk 6",53],["Wk 7",61],["Wk 8",68],["Wk 9",72],["Wk 10",75],["Wk 11",79],["Wk 12",81]]
+  }
+};
+
+// Action types grouped by strength. Paraphrased from the action hierarchy used in RCA².
+const HIERARCHY = {
+  stronger: { label: "Stronger actions", note: "Change the system so the error is hard or impossible", types: ["Architectural or physical change", "Forcing function", "Simplify the process", "Standardize equipment or process", "Tangible involvement by leadership"] },
+  intermediate: { label: "Intermediate actions", note: "Make the right thing easier and the wrong thing visible", types: ["Redundancy", "Increase staffing or reduce workload", "Software enhancement", "Eliminate distractions", "Checklist or cognitive aid", "Remove look-alikes and sound-alikes", "Standardized communication tool", "Simulation-based training with refreshers", "Enhanced documentation or communication"] },
+  weaker: { label: "Weaker actions", note: "Depend on people remembering and doing it right", types: ["Double check", "Warning or label", "New policy, procedure or memo", "Training"] }
+};
+
+let S = clone(SAMPLE);
+let selected = null;
+let editing = null;
+let whyParent = null;
+
+// ---------- helpers ----------
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function uid(p) { return p + Math.random().toString(36).slice(2, 8); }
+function roleName(id) { const r = S.roles.find(r => r.id === id); return r ? r.name : ""; }
+function fmtTime(t) { const d = Math.floor(t / 1440), m = t % 1440; const hh = String(Math.floor(m / 60)).padStart(2, "0"), mm = String(m % 60).padStart(2, "0"); return (d ? "Day " + (d + 1) + " " : "") + hh + ":" + mm; }
+function sortedSteps() { return S.steps.slice().sort((a, b) => a.t - b.t); }
+function stepNo(id) { return sortedSteps().findIndex(s => s.id === id) + 1; }
+function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
+
+// ---------- analysis ----------
+function unchecked() { return sortedSteps().filter(s => s.belief && s.belief.trim() && s.checked !== "yes"); }
+function unacked() { return sortedSteps().filter(s => s.to && s.ack !== "yes"); }
+function dutyStatus(d) {
+  const vals = S.roles.map(r => d.claims[r.id]).filter(Boolean);
+  const mine = vals.filter(v => v === "mine").length;
+  if (!vals.length) return { k: "none", label: "No answers yet", cls: "" };
+  if (mine === 0) return { k: "unclaimed", label: "Unclaimed: no role believed it was theirs", cls: "gap" };
+  if (mine > 1) return { k: "shared", label: "More than one role believed it was theirs", cls: "assume" };
+  return { k: "owned", label: "One role believed it was theirs", cls: "ok" };
+}
+function unclaimed() { return S.duties.filter(d => dutyStatus(d).k === "unclaimed"); }
+
+// ---------- routing ----------
+const STAGES = ["event", "timeline", "lanes", "ownership", "causes", "actions", "measure", "save"];
+function route() {
+  let h = (location.hash || "").replace("#", "");
+  if (!STAGES.includes(h)) h = "event";
+  document.querySelectorAll("section.stage").forEach(s => { s.hidden = s.dataset.stage !== h; });
+  document.querySelectorAll("nav.stages a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + h ? "page" : "false"));
+  if (h === "lanes") renderLanes();
+  if (h === "measure") renderRun();
+}
+window.addEventListener("hashchange", route);
+
+// ---------- render all ----------
+function renderAll() {
+  renderEvent(); renderRoles(); renderOverview(); renderStepForm(); renderSteps(); renderLanes(); renderDuties();
+  renderCauses(); renderStatements(); renderActions(); renderRunInputs(); renderRun();
+  $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title ? (S.event.title.length > 48 ? S.event.title.slice(0, 46) + "…" : S.event.title) : "Untitled review") + "</span>";
+}
+
+// ---------- stage 1 ----------
+function renderEvent() {
+  $("ev-title").value = S.event.title; $("ev-setting").value = S.event.setting;
+  $("ev-summary").value = S.event.summary; $("ev-outcome").value = S.event.outcome;
+}
+["title", "setting", "summary", "outcome"].forEach(k => {
+  $("ev-" + k).addEventListener("input", e => { S.event[k] = e.target.value; if (k === "title") { $("effect-title").textContent = S.event.title || "The event"; $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title || "Untitled review") + "</span>"; } });
+});
+function renderRoles() {
+  const ul = $("role-list"); ul.innerHTML = "";
+  S.roles.forEach(r => {
+    const n = S.steps.filter(s => s.role === r.id).length;
+    const li = el('<li class="item"><div class="item-head"><span class="what"></span><span class="row" style="gap:6px"><span class="muted" style="font-size:.85rem"></span><button type="button" class="quiet small">Remove</button></span></div></li>');
+    li.querySelector(".what").textContent = r.name;
+    li.querySelector(".muted").textContent = n + (n === 1 ? " step" : " steps");
+    const b = li.querySelector("button");
+    if (n) { b.disabled = true; b.title = "Remove or move this role's steps first"; b.style.opacity = .5; }
+    b.addEventListener("click", () => { S.roles = S.roles.filter(x => x.id !== r.id); S.duties.forEach(d => delete d.claims[r.id]); renderAll(); });
+    ul.appendChild(li);
+  });
+}
+$("role-add").addEventListener("click", () => {
+  const v = $("role-new").value.trim(); if (!v) return;
+  S.roles.push({ id: uid("r"), name: v }); $("role-new").value = ""; renderAll();
+});
+$("role-new").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("role-add").click(); } });
+function renderOverview() {
+  const tiles = [
+    ["accent", S.steps.length, "steps across " + S.roles.length + " roles", "#timeline"],
+    ["assume", unchecked().length, "unchecked assumptions", "#lanes"],
+    ["gap", unacked().length, "handoffs not acknowledged", "#lanes"],
+    ["gap", unclaimed().length, "unclaimed responsibilities", "#ownership"],
+    ["accent", S.statements.length, "causal statements", "#causes"],
+    ["accent", S.actions.length, "actions planned", "#actions"]
+  ];
+  $("overview").innerHTML = tiles.map(t => '<a class="tally ' + t[0] + '" href="' + t[3] + '" style="text-decoration:none;color:inherit"><span class="n">' + t[1] + '</span><span class="k">' + esc(t[2]) + "</span></a>").join("");
+}
+
+// ---------- stage 2 ----------
+function renderStepForm() {
+  const roleOpts = S.roles.map(r => '<option value="' + esc(r.id) + '">' + esc(r.name) + "</option>").join("");
+  const cur = { role: $("st-role").value, to: $("st-to").value, wait: $("st-wait").value };
+  $("st-role").innerHTML = roleOpts;
+  $("st-to").innerHTML = '<option value="">No handoff</option>' + roleOpts;
+  $("st-wait").innerHTML = '<option value="">No</option>' + sortedSteps().map(s => '<option value="' + esc(s.id) + '">' + stepNo(s.id) + ". " + esc(roleName(s.role)) + ": " + esc(s.what.slice(0, 60)) + "</option>").join("");
+  if (cur.role && S.roles.some(r => r.id === cur.role)) $("st-role").value = cur.role;
+  $("st-to").value = cur.to && S.roles.some(r => r.id === cur.to) ? cur.to : "";
+  $("st-wait").value = cur.wait && S.steps.some(s => s.id === cur.wait) ? cur.wait : "";
+}
+function renderSteps() {
+  const ul = $("step-list"); ul.innerHTML = "";
+  $("step-count").textContent = S.steps.length + (S.steps.length === 1 ? " step" : " steps");
+  if (!S.steps.length) { ul.innerHTML = '<li class="muted">No steps yet. Start with the first thing someone noticed.</li>'; return; }
+  sortedSteps().forEach((s, i) => {
+    const li = el('<li class="item"></li>');
+    if (s.id === selected) li.classList.add("sel");
+    let chips = "";
+    if (s.kind && s.kind !== "activity") chips += '<span class="chip accent">' + ({ decision: "Decision", start: "Start", end: "End" }[s.kind] || "") + "</span>";
+    if (s.to) chips += '<span class="chip ' + (s.ack === "yes" ? "ok" : "gap") + '">Handed to ' + esc(roleName(s.to)) + (s.ack === "yes" ? ", acknowledged" : s.ack === "no" ? ", not acknowledged" : ", acknowledgement not known") + "</span>";
+    if (s.wait) chips += '<span class="chip">Waited on step ' + stepNo(s.wait) + "</span>";
+    li.innerHTML = '<div class="item-head"><span><span class="mono muted">' + (i + 1) + ". " + esc(fmtTime(s.t)) + '</span> <b>' + esc(roleName(s.role)) + '</b></span><span class="row" style="gap:6px"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div>' +
+      '<p class="what">' + esc(s.what) + "</p>" + (chips ? '<div class="chips">' + chips + "</div>" : "") +
+      (s.belief ? '<p class="belief ' + (s.checked === "yes" ? "checked" : "") + '"><span class="muted">Believed: </span>' + esc(s.belief) + ' <span class="chip ' + (s.checked === "yes" ? "ok" : "assume") + '">' + (s.checked === "yes" ? "verified" : s.checked === "no" ? "assumed" : "not known if checked") + "</span></p>" : "");
+    li.querySelector('[data-a="edit"]').addEventListener("click", () => startEdit(s.id));
+    li.querySelector('[data-a="del"]').addEventListener("click", () => {
+      S.steps = S.steps.filter(x => x.id !== s.id); S.steps.forEach(x => { if (x.wait === s.id) x.wait = ""; });
+      if (selected === s.id) selected = null; if (editing === s.id) stopEdit(); renderAll();
+    });
+    ul.appendChild(li);
+  });
+}
+function startEdit(id) {
+  const s = S.steps.find(x => x.id === id); if (!s) return;
+  editing = id; renderStepForm();
+  $("st-role").value = s.role; $("st-day").value = String(Math.floor(s.t / 1440));
+  const m = s.t % 1440; $("st-time").value = String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+  $("st-kind").value = s.kind || "activity"; $("st-what").value = s.what; $("st-to").value = s.to || ""; $("st-ack").value = s.ack || "unknown";
+  $("st-wait").value = s.wait || ""; $("st-belief").value = s.belief || ""; $("st-checked").value = s.checked || "no";
+  $("step-form-title").textContent = "Edit step " + stepNo(id); $("st-save").textContent = "Save changes"; $("st-cancel").hidden = false;
+  if (location.hash !== "#timeline") location.hash = "timeline";
+  $("st-what").focus();
+}
+function stopEdit() {
+  editing = null; $("step-form").reset(); $("step-form-title").textContent = "Add a step"; $("st-save").textContent = "Add step"; $("st-cancel").hidden = true; renderStepForm();
+}
+$("st-cancel").addEventListener("click", stopEdit);
+$("st-kind").addEventListener("change", () => { $("st-what-hint").textContent = $("st-kind").value === "decision" ? "Write the yes/no question and the answer that was taken" : "Describe it as it actually happened, not as it should have"; });
+$("step-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const [hh, mm] = ($("st-time").value || "00:00").split(":").map(Number);
+  const rec = { role: $("st-role").value, t: Number($("st-day").value) * 1440 + hh * 60 + mm, kind: $("st-kind").value, what: $("st-what").value.trim(), to: $("st-to").value,
+    ack: $("st-ack").value, wait: $("st-wait").value, belief: $("st-belief").value.trim(), checked: $("st-checked").value };
+  if (!rec.role) { $("st-role").focus(); return; }
+  if (!rec.what) { $("st-what").focus(); return; }
+  if (rec.to === rec.role) rec.to = "";
+  if (editing) { Object.assign(S.steps.find(x => x.id === editing), rec); if (rec.wait === editing) S.steps.find(x => x.id === editing).wait = ""; stopEdit(); }
+  else { S.steps.push(Object.assign({ id: uid("s") }, rec)); $("step-form").reset(); $("st-role").value = rec.role; }
+  renderAll();
+});
+
+// ---------- stage 3: swimlanes ----------
+function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function renderLanes() {
+  const frame = $("lane-frame");
+  const steps = sortedSteps();
+  if (!steps.length || !S.roles.length) { frame.innerHTML = '<p class="muted" style="padding:16px">Add roles and steps to draw the swimlanes.</p>'; renderSignals(); return; }
+  const LW = 168, LH = 70, TOP = 34, PPM = 1.9;
+  let t0 = Math.floor((steps[0].t - 30) / 60) * 60, t1 = Math.ceil((steps[steps.length - 1].t + 40) / 60) * 60;
+  if (t1 - t0 < 240) t1 = t0 + 240;
+  const W = LW + (t1 - t0) * PPM + 24, H = TOP + S.roles.length * LH + 12;
+  const x = t => LW + (t - t0) * PPM, laneIdx = id => S.roles.findIndex(r => r.id === id), y = id => TOP + laneIdx(id) * LH + LH / 2;
+  const C = { accent: cssVar("--accent"), assume: cssVar("--assume"), gap: cssVar("--gap"), muted: cssVar("--muted"), line: cssVar("--line"), a: cssVar("--lane-a"), b: cssVar("--lane-b"), surface: cssVar("--surface"), ink: cssVar("--ink") };
+  let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Swimlane diagram of the event timeline">';
+  svg += '<defs><marker id="arr-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="' + C.accent + '"/></marker>' +
+    '<marker id="arr-gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="' + C.gap + '"/></marker>' +
+    '<marker id="arr-wait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="' + C.muted + '"/></marker></defs>';
+  S.roles.forEach((r, i) => {
+    svg += '<rect x="0" y="' + (TOP + i * LH) + '" width="' + W + '" height="' + LH + '" fill="' + (i % 2 ? C.b : C.a) + '"/>';
+    svg += '<text class="lane-label" x="12" y="' + (TOP + i * LH + LH / 2 + 4) + '">' + esc(r.name.length > 22 ? r.name.slice(0, 21) + "…" : r.name) + "<title>" + esc(r.name) + "</title></text>";
+  });
+  svg += '<line x1="' + LW + '" y1="' + TOP + '" x2="' + LW + '" y2="' + (H - 12) + '" stroke="' + C.line + '"/>';
+  for (let t = t0; t <= t1; t += 60) {
+    svg += '<line x1="' + x(t) + '" y1="' + (TOP - 4) + '" x2="' + x(t) + '" y2="' + (H - 12) + '" stroke="' + C.line + '" stroke-dasharray="2 4"/>';
+    svg += '<text class="axis" x="' + x(t) + '" y="' + (TOP - 12) + '" text-anchor="middle">' + esc(fmtTime(t)) + "</text>";
+  }
+  const related = new Set();
+  if (selected) { const s = S.steps.find(z => z.id === selected); if (s) { related.add(s.id); if (s.wait) related.add(s.wait); S.steps.forEach(z => { if (z.wait === s.id) related.add(z.id); }); } }
+  const dim = id => selected && !related.has(id) ? ' opacity="0.35"' : "";
+  steps.forEach(s => {
+    if (!s.wait) return;
+    const w = S.steps.find(z => z.id === s.wait); if (!w || laneIdx(w.role) < 0 || laneIdx(s.role) < 0) return;
+    const x1 = x(w.t), y1 = y(w.role), x2 = x(s.t), y2 = y(s.role);
+    const dx = Math.max(24, (x2 - x1) / 2);
+    svg += '<path d="M' + (x1 + 8) + "," + y1 + " C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + (x2 - 10) + "," + y2 + '" fill="none" stroke="' + C.muted + '" stroke-width="1.4" stroke-dasharray="1.5 3" marker-end="url(#arr-wait)"' + (selected && !(related.has(s.id) && related.has(w.id)) ? ' opacity="0.25"' : "") + "/>";
+  });
+  steps.forEach(s => {
+    if (!s.to || laneIdx(s.to) < 0 || laneIdx(s.role) < 0) return;
+    const x1 = x(s.t), y1 = y(s.role), y2 = y(s.to), ok = s.ack === "yes";
+    const x2 = x1 + 26, dir = y2 > y1 ? 1 : -1;
+    svg += '<path d="M' + x1 + "," + (y1 + dir * 9) + " C" + (x1 + 4) + "," + ((y1 + y2) / 2) + " " + (x2 - 4) + "," + ((y1 + y2) / 2) + " " + x2 + "," + (y2 - dir * 6) + '" fill="none" stroke="' + (ok ? C.accent : C.gap) + '" stroke-width="1.6"' + (ok ? "" : ' stroke-dasharray="5 3"') + ' marker-end="url(#' + (ok ? "arr-ok" : "arr-gap") + ')"' + dim(s.id) + "/>";
+  });
+  steps.forEach((s, i) => {
+    if (laneIdx(s.role) < 0) return;
+    const cx = x(s.t), cy = y(s.role), assume = s.belief && s.belief.trim() && s.checked !== "yes", isSel = s.id === selected;
+    svg += '<g class="step-dot" data-id="' + esc(s.id) + '" tabindex="0" role="button" aria-label="Step ' + (i + 1) + ", " + esc(roleName(s.role)) + ", " + esc(fmtTime(s.t)) + ": " + esc(s.what) + '"' + dim(s.id) + ">";
+    if (assume) svg += '<circle cx="' + cx + '" cy="' + cy + '" r="12.5" fill="none" stroke="' + C.assume + '" stroke-width="1.8" stroke-dasharray="3 2"/>';
+    const stroke = '" stroke="' + (isSel ? C.ink : C.surface) + '" stroke-width="' + (isSel ? 2.5 : 1.5) + '"/>';
+    if (s.kind === "decision") { const r = isSel ? 13 : 12; svg += '<polygon points="' + cx + "," + (cy - r) + " " + (cx + r) + "," + cy + " " + cx + "," + (cy + r) + " " + (cx - r) + "," + cy + '" fill="' + C.accent + stroke; }
+    else if (s.kind === "start" || s.kind === "end") svg += '<rect x="' + (cx - 14) + '" y="' + (cy - 9) + '" width="28" height="18" rx="9" fill="' + C.accent + stroke;
+    else svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (isSel ? 10 : 9) + '" fill="' + C.accent + stroke;
+    svg += '<text x="' + cx + '" y="' + (cy + 3.8) + '" text-anchor="middle" style="font-family:var(--f-mono);font-size:10.5px;font-weight:500" fill="' + C.surface + '">' + (i + 1) + "</text>";
+    svg += "<title>" + esc((i + 1) + ". " + fmtTime(s.t) + " " + roleName(s.role) + ": " + s.what) + "</title></g>";
+  });
+  svg += "</svg>";
+  frame.innerHTML = svg;
+  frame.querySelectorAll(".step-dot").forEach(g => {
+    const pick = () => { selected = selected === g.dataset.id ? null : g.dataset.id; renderLanes(); renderSteps(); const n = frame.querySelector('.step-dot[data-id="' + selected + '"]'); if (n) n.focus({ preventScroll: true }); };
+    g.addEventListener("click", pick);
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  });
+  renderDetail(); renderSignals();
+}
+function renderDetail() {
+  const box = $("step-detail"), s = S.steps.find(z => z.id === selected);
+  if (!s) { box.innerHTML = '<p class="muted">Select a step in the swimlanes to see what it depended on and what depended on it.</p>'; return; }
+  const up = s.wait ? S.steps.find(z => z.id === s.wait) : null;
+  const down = sortedSteps().filter(z => z.wait === s.id);
+  const from = sortedSteps().filter(z => z.to === s.role && z.t <= s.t && z.id !== s.id).slice(-1)[0];
+  let h = '<p class="eyebrow">Step ' + stepNo(s.id) + " · " + esc(fmtTime(s.t)) + "</p><h3>" + esc(roleName(s.role)) + "</h3><p>" + esc(s.what) + "</p>";
+  if (s.belief) h += '<p class="belief ' + (s.checked === "yes" ? "checked" : "") + '"><span class="muted">Believed: </span>' + esc(s.belief) + "</p>";
+  h += '<div class="chips">';
+  if (up) h += '<span class="chip">Waited on step ' + stepNo(up.id) + ": " + esc(roleName(up.role)) + "</span>";
+  if (from) h += '<span class="chip ' + (from.ack === "yes" ? "ok" : "gap") + '">Last handoff in: step ' + stepNo(from.id) + " from " + esc(roleName(from.role)) + "</span>";
+  if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : "gap") + '">Handed to ' + esc(roleName(s.to)) + "</span>";
+  down.forEach(d => { h += '<span class="chip accent">Step ' + stepNo(d.id) + " waited on this</span>"; });
+  h += '</div><div class="row"><button type="button" class="ghost small" id="detail-edit">Edit this step</button></div>';
+  box.innerHTML = h;
+  $("detail-edit").addEventListener("click", () => startEdit(s.id));
+}
+function renderSignals() {
+  const ul = $("signal-list"); const items = [];
+  unchecked().forEach(s => items.push('<li class="item"><span class="chip assume">Unchecked assumption · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " believed: " + esc(s.belief) + "</p></li>"));
+  unacked().forEach(s => items.push('<li class="item"><span class="chip gap">Handoff not acknowledged · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.what) + "</p></li>"));
+  unclaimed().forEach(d => items.push('<li class="item"><span class="chip gap">Unclaimed responsibility</span><p>' + esc(d.name) + "</p></li>"));
+  ul.innerHTML = items.length ? items.join("") : '<li class="muted">No signals yet.</li>';
+}
+
+// ---------- stage 4 ----------
+function renderDuties() {
+  const tb = $("duty-table");
+  if (!S.duties.length) { tb.innerHTML = '<tr><td class="muted">No shared responsibilities yet.</td></tr>'; return; }
+  let h = "<thead><tr><th>Responsibility</th>" + S.roles.map(r => "<th>" + esc(r.name) + "</th>").join("") + "<th>Result</th><th></th></tr></thead><tbody>";
+  S.duties.forEach(d => {
+    const st = dutyStatus(d);
+    h += "<tr><td><b>" + esc(d.name) + "</b></td>" + S.roles.map(r => {
+      const v = d.claims[r.id] || "";
+      return '<td><select data-d="' + esc(d.id) + '" data-r="' + esc(r.id) + '" aria-label="' + esc(r.name + ": " + d.name) + '"><option value=""' + (v === "" ? " selected" : "") + '>Not involved</option><option value="mine"' + (v === "mine" ? " selected" : "") + '>Mine</option><option value="theirs"' + (v === "theirs" ? " selected" : "") + '>Another role\'s</option><option value="unsure"' + (v === "unsure" ? " selected" : "") + ">Not sure</option></select></td>";
+    }).join("") + '<td><span class="chip ' + st.cls + '">' + esc(st.label) + '</span></td><td><button type="button" class="quiet small" data-del="' + esc(d.id) + '">Remove</button></td></tr>';
+  });
+  tb.innerHTML = h + "</tbody>";
+  tb.querySelectorAll("select").forEach(s => s.addEventListener("change", e => {
+    const d = S.duties.find(z => z.id === e.target.dataset.d); if (!d) return;
+    if (e.target.value) d.claims[e.target.dataset.r] = e.target.value; else delete d.claims[e.target.dataset.r];
+    renderDuties(); renderOverview(); renderSignals(); renderSuggestions();
+  }));
+  tb.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => { S.duties = S.duties.filter(z => z.id !== b.dataset.del); renderAll(); }));
+}
+$("duty-add").addEventListener("click", () => { const v = $("duty-new").value.trim(); if (!v) return; S.duties.push({ id: uid("d"), name: v, claims: {} }); $("duty-new").value = ""; renderAll(); });
+$("duty-new").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("duty-add").click(); } });
+
+// ---------- stage 5 ----------
+function renderCauses() {
+  $("effect-title").textContent = S.event.title || "The event";
+  $("cause-cat").innerHTML = S.categories.map(c => "<option>" + esc(c) + "</option>").join("");
+  $("cat-text").value = S.categories.join("\n");
+  const box = $("bones"); box.innerHTML = "";
+  S.categories.forEach(c => {
+    const list = S.causes.filter(z => z.cat === c);
+    const div = el('<div class="bone"><h3></h3><ul class="plain"></ul></div>');
+    div.querySelector("h3").textContent = c;
+    const ul = div.querySelector("ul");
+    if (!list.length) ul.innerHTML = '<li class="muted">No factors yet</li>';
+    const top = list.filter(z => !z.parent || !list.some(y => y.id === z.parent));
+    const addLi = (z, depth) => {
+      const li = el('<li style="padding-left:' + (depth * 16) + 'px"><span></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-a="why" title="Add a sub-cause: ask why">Why?</button><button type="button" class="quiet small" data-a="del" aria-label="Remove factor">×</button></span></li>');
+      li.querySelector("span").textContent = (depth ? "↳ " : "") + z.text;
+      li.querySelector('[data-a="del"]').addEventListener("click", () => { const gone = new Set([z.id]); let grew = true; while (grew) { grew = false; S.causes.forEach(y => { if (y.parent && gone.has(y.parent) && !gone.has(y.id)) { gone.add(y.id); grew = true; } }); } S.causes = S.causes.filter(y => !gone.has(y.id)); renderCauses(); });
+      li.querySelector('[data-a="why"]').addEventListener("click", () => { whyParent = z.id; $("cause-cat").value = z.cat; $("cause-text").value = ""; $("cause-text").placeholder = "Why: " + z.text; $("cause-form-title").textContent = "Add a sub-cause"; $("cause-text").focus(); });
+      ul.appendChild(li);
+      list.filter(y => y.parent === z.id).forEach(y => addLi(y, depth + 1));
+    };
+    top.forEach(z => addLi(z, 0));
+    box.appendChild(div);
+  });
+  const orphan = S.causes.filter(z => !S.categories.includes(z.cat));
+  if (orphan.length) { const div = el('<div class="bone"><h3>Uncategorized</h3><ul class="plain"></ul></div>'); orphan.forEach(z => { const li = el("<li><span></span></li>"); li.querySelector("span").textContent = z.text; div.querySelector("ul").appendChild(li); }); box.appendChild(div); }
+  renderSuggestions();
+}
+function renderSuggestions() {
+  const ul = $("suggest-list"); const items = [];
+  const has = t => S.causes.some(c => c.text === t);
+  unchecked().forEach(s => items.push({ cat: "Methods", text: roleName(s.role) + " assumed: " + s.belief }));
+  unacked().forEach(s => items.push({ cat: "Methods", text: "Handoff from " + roleName(s.role) + " to " + roleName(s.to) + " not acknowledged (step " + stepNo(s.id) + ")" }));
+  unclaimed().forEach(d => items.push({ cat: "Methods", text: "No role believed it owned: " + d.name }));
+  const fresh = items.filter(i => !has(i.text));
+  ul.innerHTML = "";
+  if (!fresh.length) { ul.innerHTML = '<li class="muted">Nothing new to suggest.</li>'; return; }
+  fresh.forEach(i => {
+    const li = el('<li class="item"><p></p><div class="row"><button type="button" class="ghost small">Add to diagram</button></div></li>');
+    li.querySelector("p").textContent = i.text;
+    li.querySelector("button").addEventListener("click", () => {
+      const cat = S.categories.includes(i.cat) ? i.cat : S.categories[0] || "Other";
+      if (!S.categories.includes(cat)) S.categories.push(cat);
+      S.causes.push({ id: uid("c"), cat, text: i.text }); renderCauses();
+    });
+    ul.appendChild(li);
+  });
+}
+$("cat-edit-toggle").addEventListener("click", () => { $("cat-editor").hidden = !$("cat-editor").hidden; });
+$("cat-save").addEventListener("click", () => {
+  const cats = $("cat-text").value.split("\n").map(s => s.trim()).filter(Boolean);
+  if (cats.length) S.categories = Array.from(new Set(cats));
+  $("cat-editor").hidden = true; renderCauses();
+});
+$("cause-form").addEventListener("submit", e => {
+  e.preventDefault(); const t = $("cause-text").value.trim(); if (!t) return;
+  const rec = { id: uid("c"), cat: $("cause-cat").value, text: t }; if (whyParent && S.causes.some(c => c.id === whyParent)) rec.parent = whyParent;
+  S.causes.push(rec); whyParent = null; $("cause-text").value = ""; $("cause-text").placeholder = "e.g. Critical results phoned to whoever answers the unit phone"; $("cause-form-title").textContent = "Add a contributing factor"; renderCauses();
+});
+
+// Wording prompts based on the five rules of causation. They prompt the team; they do not judge.
+function lint(st) {
+  const all = [st.cause, st.effect, st.event].join(" ").toLowerCase();
+  const out = [];
+  if (!st.cause.trim() || !st.effect.trim() || !st.event.trim()) out.push(["warn", "Rule 1: show the cause, the effect, and the event it made more likely."]);
+  if (/\b(poor|poorly|inadequate|inadequately|careless|carelessly|bad|badly|negligent|negligence|sloppy|lazy|incompetent|improper|improperly|wrong)\b/.test(all)) out.push(["warn", "Rule 2: replace judgement words (such as poor, careless, inadequate) with a specific description of what happened."]);
+  if (/\b(human error|mistake|forgot|oversight|error by|staff error|nurse error|physician error)\b/.test(all)) out.push(["warn", "Rule 3: an error needs a preceding cause. Say what made the error likely."]);
+  if (/(did not follow|didn't follow|not follow|violat|deviat|non-?complian|did not comply|bypass)/.test(all)) out.push(["warn", "Rule 4: a departure from procedure needs a preceding cause. Say why the procedure was not followed."]);
+  if (/\b(did not|didn't|failed to|failure to|neglected to|no one|nobody)\b/.test(all)) out.push(["warn", "Rule 5: not acting is causal only where there was a duty to act. Name the duty and why it was not met."]);
+  if (!out.length && all.trim()) out.push(["pass", "No wording problems found by the five-rule check. The team still decides whether the statement is true."]);
+  return out;
+}
+function stmtFromForm() { return { cause: $("stmt-cause").value, effect: $("stmt-effect").value, event: $("stmt-event").value }; }
+function showLint() { $("stmt-lint").innerHTML = lint(stmtFromForm()).map(l => '<span class="' + l[0] + '">' + (l[0] === "warn" ? "Check: " : "") + esc(l[1]) + "</span>").join(""); }
+["stmt-cause", "stmt-effect", "stmt-event"].forEach(id => $(id).addEventListener("input", showLint));
+$("stmt-form").addEventListener("submit", e => {
+  e.preventDefault(); const st = stmtFromForm(); if (!st.cause.trim() || !st.effect.trim() || !st.event.trim()) return;
+  S.statements.push(Object.assign({ id: uid("x") }, st)); $("stmt-form").reset(); $("stmt-event").value = S.event.title ? S.event.title.toLowerCase() : ""; $("stmt-lint").innerHTML = ""; renderStatements(); renderActions(); renderOverview();
+});
+function renderStatements() {
+  const ul = $("stmt-list"); ul.innerHTML = "";
+  if (!S.statements.length) { ul.innerHTML = '<li class="muted">No causal statements yet.</li>'; return; }
+  S.statements.forEach((st, i) => {
+    const n = S.actions.filter(a => a.stmt === st.id).length;
+    const warns = lint(st).filter(l => l[0] === "warn");
+    const li = el('<li class="item"><div class="item-head"><span class="eyebrow"></span><button type="button" class="quiet small">Delete</button></div><p class="statement"></p><div class="chips"></div></li>');
+    li.querySelector(".eyebrow").textContent = "Statement " + (i + 1);
+    li.querySelector(".statement").textContent = "Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + ".";
+    li.querySelector(".chips").innerHTML = '<span class="chip ' + (n ? "ok" : "gap") + '">' + (n ? n + (n === 1 ? " action" : " actions") : "No action yet") + "</span>" + (warns.length ? '<span class="chip assume">' + warns.length + " wording " + (warns.length === 1 ? "check" : "checks") + "</span>" : "");
+    li.querySelector("button").addEventListener("click", () => { S.statements = S.statements.filter(z => z.id !== st.id); S.actions.forEach(a => { if (a.stmt === st.id) a.stmt = ""; }); renderAll(); });
+    ul.appendChild(li);
+  });
+}
+
+// ---------- stage 6 ----------
+function tierOf(type) { return (type || "").split(":")[0]; }
+function renderActions() {
+  $("act-stmt").innerHTML = '<option value="">Not linked</option>' + S.statements.map((st, i) => '<option value="' + esc(st.id) + '">Statement ' + (i + 1) + ": " + esc(st.cause.slice(0, 70)) + "</option>").join("");
+  $("act-type").innerHTML = Object.keys(HIERARCHY).map(k => '<optgroup label="' + esc(HIERARCHY[k].label) + '">' + HIERARCHY[k].types.map(t => '<option value="' + esc(k + ":" + t) + '">' + esc(t) + "</option>").join("") + "</optgroup>").join("");
+  $("tiers").innerHTML = Object.keys(HIERARCHY).map(k => {
+    const n = S.actions.filter(a => tierOf(a.type) === k).length;
+    return '<div class="tier ' + k + '"><h3><span>' + esc(HIERARCHY[k].label) + '</span><span class="mono">' + n + '</span></h3><p class="muted" style="font-size:.86rem">' + esc(HIERARCHY[k].note) + "</p><ul>" + HIERARCHY[k].types.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul></div>";
+  }).join("");
+  const ul = $("act-list"); ul.innerHTML = "";
+  if (!S.actions.length) { ul.innerHTML = '<li class="muted">No actions yet.</li>'; }
+  const strong = S.actions.some(a => tierOf(a.type) !== "weaker");
+  if (S.actions.length && !strong) ul.appendChild(el('<li class="item suggest"><p>Every action so far depends on people remembering. Consider at least one stronger or intermediate action that changes the system.</p></li>'));
+  S.actions.forEach(a => {
+    const k = tierOf(a.type), t = (a.type || "").split(":")[1] || "";
+    const sIdx = S.statements.findIndex(st => st.id === a.stmt);
+    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><button type="button" class="quiet small">Delete</button></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p></li>');
+    li.querySelector(".chips").innerHTML = '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc((HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + " · " + t) + "</span>" + (sIdx >= 0 ? '<span class="chip">Statement ' + (sIdx + 1) + "</span>" : '<span class="chip gap">Not linked to a statement</span>');
+    li.querySelector(".what").textContent = a.text;
+    li.querySelector(".muted").textContent = [a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due, a.measure && "Measure: " + a.measure].filter(Boolean).join(" · ") || "No owner or measure yet";
+    li.querySelector("button").addEventListener("click", () => { S.actions = S.actions.filter(z => z.id !== a.id); renderAll(); });
+    ul.appendChild(li);
+  });
+}
+$("act-form").addEventListener("submit", e => {
+  e.preventDefault(); const t = $("act-text").value.trim(); if (!t) return;
+  S.actions.push({ id: uid("a"), stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measure: $("act-measure").value.trim() });
+  $("act-form").reset(); renderAll();
+});
+
+// ---------- stage 7: run chart ----------
+function renderRunInputs() { $("run-name").value = S.run.name; $("run-pct").checked = !!S.run.percent; $("run-data").value = S.run.points.map(p => p[0] + ", " + p[1]).join("\n"); $("run-notes").value = (S.run.notes || []).map(n => n[0] + ", " + n[1]).join("\n"); }
+$("run-name").addEventListener("input", e => { S.run.name = e.target.value; });
+$("run-apply").addEventListener("click", () => {
+  const pts = $("run-data").value.split("\n").map(l => l.split(",")).filter(p => p.length >= 2 && p[1].trim() !== "" && !isNaN(Number(p[1]))).map(p => [p[0].trim(), Number(p[1])]);
+  S.run.points = pts;
+  S.run.notes = $("run-notes").value.split("\n").map(l => { const i = l.indexOf(","); return i < 0 ? null : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }).filter(n => n && n[0] && n[1]);
+  S.run.percent = $("run-pct").checked; renderRun();
+});
+function median(a) { const s = a.slice().sort((x, y) => x - y), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function runSignals(vals, med) {
+  const sig = [];
+  let side = 0, len = 0, start = 0;
+  vals.forEach((v, i) => {
+    const s = v > med ? 1 : v < med ? -1 : 0;
+    if (s === 0) return;
+    if (s === side) len++; else { if (len >= 6) sig.push({ k: "shift", from: start, to: i - 1, dir: side }); side = s; len = 1; start = i; }
+  });
+  if (len >= 6) sig.push({ k: "shift", from: start, to: vals.length - 1, dir: side });
+  let d = 0, n = 1, ts = 0;
+  for (let i = 1; i < vals.length; i++) {
+    const s = vals[i] > vals[i - 1] ? 1 : vals[i] < vals[i - 1] ? -1 : 0;
+    if (s === 0) continue;
+    if (s === d) n++; else { if (n >= 5) sig.push({ k: "trend", from: ts, to: i - 1, dir: d }); d = s; n = 2; ts = i - 1; }
+  }
+  if (n >= 5) sig.push({ k: "trend", from: ts, to: vals.length - 1, dir: d });
+  return sig;
+}
+function renderRun() {
+  const box = $("run-chart"), pts = S.run.points;
+  if (pts.length < 2) { box.innerHTML = '<p class="muted">Enter at least two data points.</p>'; $("run-signals").innerHTML = ""; return; }
+  const vals = pts.map(p => p[1]), showMed = pts.length >= 10, med = median(vals);
+  const notes = (S.run.notes || []).map(n => [pts.findIndex(p => p[0] === n[0]), n[1]]).filter(n => n[0] >= 0);
+  const W = Math.max(560, 60 + pts.length * 52), H = 300, L = 48, R = 16, T = notes.length ? 36 : 16, B = 40;
+  // IHI: scale from about 20% below the smallest value to about 20% above the largest, unless logical limits apply.
+  let lo = Math.min.apply(null, vals) * 0.8, hi = Math.max.apply(null, vals) * 1.2;
+  if (Math.min.apply(null, vals) < 0) lo = Math.min.apply(null, vals) * 1.2;
+  if (S.run.percent) { lo = Math.max(0, lo); hi = Math.min(100, hi); }
+  if (hi - lo < 1e-9) { hi = lo + 1; }
+  const step = Math.pow(10, Math.floor(Math.log10((hi - lo) / 5))); lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+  if (S.run.percent) { lo = Math.max(0, lo); hi = Math.min(100, hi); }
+  const x = i => L + (pts.length === 1 ? 0 : i * (W - L - R) / (pts.length - 1)), y = v => T + (hi - v) * (H - T - B) / (hi - lo);
+  const C = { accent: cssVar("--accent"), line: cssVar("--line"), muted: cssVar("--muted"), ok: cssVar("--ok"), surface: cssVar("--surface"), assume: cssVar("--assume") };
+  const sig = showMed ? runSignals(vals, med) : [], flagged = new Set();
+  sig.forEach(s => { for (let i = s.from; i <= s.to; i++) flagged.add(i); });
+  let svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Run chart of ' + esc(S.run.name) + '">';
+  let tstep = step; while ((hi - lo) / tstep > 8) tstep *= 2;
+  for (let v = Math.ceil(lo / tstep) * tstep; v <= hi + 1e-9; v += tstep) { svg += '<line x1="' + L + '" y1="' + y(v) + '" x2="' + (W - R) + '" y2="' + y(v) + '" stroke="' + C.line + '" stroke-width="1"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + Math.round(v * 10) / 10 + "</text>"; }
+  if (showMed) svg += '<line x1="' + L + '" y1="' + y(med) + '" x2="' + (W - R) + '" y2="' + y(med) + '" stroke="' + C.muted + '" stroke-width="1.5" stroke-dasharray="6 4"/><text x="' + (W - R) + '" y="' + (y(med) - 6) + '" text-anchor="end">median ' + Math.round(med * 10) / 10 + "</text>";
+  notes.forEach((n, k) => { svg += '<line x1="' + x(n[0]) + '" y1="' + (T - 4) + '" x2="' + x(n[0]) + '" y2="' + (H - B) + '" stroke="' + C.assume + '" stroke-width="1.2" stroke-dasharray="3 3"/><text x="' + Math.min(x(n[0]) + 4, W - R - 4) + '" y="' + (12 + (k % 2) * 12) + '" text-anchor="' + (x(n[0]) > W - 160 ? "end" : "start") + '" style="fill:' + C.assume + '">' + esc(n[1].length > 42 ? n[1].slice(0, 41) + "…" : n[1]) + "<title>" + esc(n[1]) + "</title></text>"; });
+  svg += '<polyline fill="none" stroke="' + C.accent + '" stroke-width="2" points="' + pts.map((p, i) => x(i) + "," + y(p[1])).join(" ") + '"/>';
+  pts.forEach((p, i) => {
+    svg += '<circle cx="' + x(i) + '" cy="' + y(p[1]) + '" r="' + (flagged.has(i) ? 5.5 : 4) + '" fill="' + (flagged.has(i) ? C.ok : C.accent) + '" stroke="' + C.surface + '" stroke-width="1.5"><title>' + esc(p[0] + ": " + p[1]) + "</title></circle>";
+    if (pts.length <= 16 || i % 2 === 0) svg += '<text x="' + x(i) + '" y="' + (H - B + 18) + '" text-anchor="middle">' + esc(p[0]) + "</text>";
+  });
+  svg += "</svg>";
+  box.innerHTML = svg;
+  if (!showMed) { $("run-signals").innerHTML = '<span class="chip">Median appears at 10 or more data points (' + pts.length + " so far)</span>"; return; }
+  $("run-signals").innerHTML = sig.length ? sig.map(s => '<span class="chip ok">' + (s.k === "shift" ? "Shift" : "Trend") + ": " + esc(pts[s.from][0]) + " to " + esc(pts[s.to][0]) + (s.dir > 0 ? (s.k === "shift" ? ", above the median" : ", going up") : (s.k === "shift" ? ", below the median" : ", going down")) + "</span>").join("") : '<span class="chip">No shift or trend yet</span>';
+}
+
+// ---------- save / load ----------
+function copyText(text, msg) {
+  const done = () => { $("copy-msg").textContent = msg; $("copy-fallback").hidden = true; };
+  const fallback = () => { const t = $("copy-fallback"); t.hidden = false; t.value = text; t.focus(); t.select(); $("copy-msg").textContent = "Copying was blocked here. The text is selected below: press Ctrl+C or Cmd+C."; };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+}
+$("copy-json").addEventListener("click", () => copyText(JSON.stringify(S, null, 2), "Review data copied. Paste it into a file you keep, and load it here later."));
+$("copy-report").addEventListener("click", () => copyText(report(), "Summary report copied."));
+function report() {
+  const L = [];
+  L.push("EVENT REVIEW: " + (S.event.title || "Untitled")); L.push("Setting: " + S.event.setting); L.push(""); L.push("What happened:"); L.push(S.event.summary); L.push("Outcome: " + S.event.outcome); L.push("");
+  L.push("TIMELINE"); sortedSteps().forEach((s, i) => L.push((i + 1) + ". " + fmtTime(s.t) + " " + roleName(s.role) + ": " + s.what + (s.to ? " -> " + roleName(s.to) + " (" + (s.ack === "yes" ? "acknowledged" : s.ack === "no" ? "not acknowledged" : "acknowledgement not known") + ")" : "") + (s.belief ? " | Believed: " + s.belief + " [" + (s.checked === "yes" ? "verified" : "assumed") + "]" : "")));
+  L.push(""); L.push("SHARED RESPONSIBILITIES"); S.duties.forEach(d => L.push("- " + d.name + ": " + dutyStatus(d).label));
+  L.push(""); L.push("CONTRIBUTING FACTORS"); S.categories.forEach(c => { const l = S.causes.filter(z => z.cat === c); if (l.length) { L.push(c + ":"); l.forEach(z => L.push("  - " + z.text)); } });
+  L.push(""); L.push("CAUSAL STATEMENTS"); S.statements.forEach((st, i) => L.push((i + 1) + ". Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + "."));
+  L.push(""); L.push("ACTIONS"); S.actions.forEach(a => { const k = tierOf(a.type); L.push("- [" + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + (a.type.split(":")[1] || "") + "] " + a.text + (a.owner ? " | Responsible: " + a.owner : "") + (a.measure ? " | Measure: " + a.measure : "")); });
+  L.push(""); L.push("Prepared with the ICA Safety Review prototype. Fictional or de-identified data only.");
+  return L.join("\n");
+}
+function load(text) {
+  try {
+    const o = JSON.parse(text);
+    if (!o || !Array.isArray(o.roles) || !Array.isArray(o.steps) || !o.event) throw new Error("not a review");
+    const base = clone(SAMPLE); Object.keys(base).forEach(k => { if (o[k] === undefined) o[k] = k === "run" ? { name: "", points: [] } : Array.isArray(base[k]) ? [] : base[k]; });
+    if (o.run && !o.run.notes) o.run.notes = [];
+    S = o; selected = null; editing = null; renderAll(); $("load-msg").textContent = "Review loaded."; return true;
+  } catch (e) { $("load-msg").textContent = "That is not review data from this tool. Copy it again with Copy review data and paste the whole text."; return false; }
+}
+$("load-btn").addEventListener("click", () => { if (load($("load-paste").value)) $("load-paste").value = ""; });
+$("load-file").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => load(String(r.result)); r.readAsText(f); e.target.value = ""; });
+function twoStep(btn, label, fn) {
+  let armed = false, timer;
+  btn.addEventListener("click", () => {
+    if (!armed) { armed = true; const orig = btn.textContent; btn.dataset.orig = orig; btn.textContent = label; timer = setTimeout(() => { armed = false; btn.textContent = btn.dataset.orig; }, 4000); return; }
+    clearTimeout(timer); armed = false; btn.textContent = btn.dataset.orig; fn();
+  });
+}
+twoStep($("reset-sample"), "Click again to replace this review", () => { S = clone(SAMPLE); selected = null; renderAll(); $("load-msg").textContent = "Example case loaded."; });
+twoStep($("reset-blank"), "Click again to clear everything", () => {
+  S = { version: 1, event: { title: "", setting: "", summary: "", outcome: "" }, roles: [], steps: [], duties: [], categories: SAMPLE.categories.slice(), causes: [], statements: [], actions: [], run: { name: "", percent: false, notes: [], points: [] } };
+  selected = null; renderAll(); $("load-msg").textContent = "Blank review started."; location.hash = "event";
+});
+
+window.addEventListener("beforeunload", () => {});
+renderAll(); route();
+$("stmt-event").value = S.event.title ? S.event.title.toLowerCase() : "";
+})();
+</script>
+
+</body>
+</html>
