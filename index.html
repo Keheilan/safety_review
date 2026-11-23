@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Guided patient-safety event review with role swimlanes, hidden assumptions, cause and effect, actions and run chart. For fictional or de-identified cases only.">
+<meta name="description" content="Guided patient-safety event review with role swimlanes, hidden assumptions, cause and effect, FMEA, driver diagram, actions and run chart. For fictional or de-identified cases only.">
 <title>ICA Safety Review</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -144,6 +144,17 @@ table.duty td:first-child { min-width: 180px; }
 .tier.stronger { border-top: 4px solid var(--ok); } .tier.intermediate { border-top: 4px solid var(--accent); } .tier.weaker { border-top: 4px solid var(--assume); }
 .tier ul { margin: 0; padding-left: 18px; font-size: 0.86rem; color: var(--muted); }
 
+/* pick lists and driver diagram */
+fieldset.picks { border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; margin: 0; min-width: 0; }
+fieldset.picks legend { font-size: .88rem; font-weight: 700; padding: 0 4px; }
+.pick-list { display: grid; gap: 4px; max-height: 160px; overflow-y: auto; }
+.pick-list.tall { max-height: 220px; }
+.pick-list label { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; font-size: .88rem; }
+.pick-list input { width: auto; margin-top: 3px; }
+.pick-list .grp { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; margin-top: 4px; }
+.rpn { font-family: var(--f-mono); font-weight: 500; }
+.trace { font-size: .85rem; border-top: 1px dashed var(--line); padding-top: 6px; display: grid; gap: 4px; }
+.trace b { font-weight: 700; }
 /* run chart */
 .chart-frame { overflow-x: auto; }
 .chart-frame text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
@@ -169,8 +180,10 @@ a { color: var(--accent); }
       <a href="#lanes"><span>3</span>Swimlanes</a>
       <a href="#ownership"><span>4</span>Shared responsibilities</a>
       <a href="#causes"><span>5</span>Causes</a>
-      <a href="#actions"><span>6</span>Actions</a>
-      <a href="#measure"><span>7</span>Measure</a>
+      <a href="#risks"><span>6</span>Risks (FMEA)</a>
+      <a href="#drivers"><span>7</span>Driver diagram</a>
+      <a href="#actions"><span>8</span>Actions</a>
+      <a href="#measure"><span>9</span>Measure</a>
       <a href="#save"><span>·</span>Save and about</a>
     </nav>
   </div>
@@ -303,17 +316,71 @@ a { color: var(--accent); }
   </div>
 </section>
 
-<!-- 6 ACTIONS -->
+<!-- 6 RISKS (FMEA) -->
+<section class="stage" id="s-risks" data-stage="risks" hidden>
+  <div><p class="eyebrow">Stage 6</p><h2>Risks: failure modes and effects (FMEA)</h2></div>
+  <p class="lede">Look ahead: where could this process fail next time? Each failure mode belongs to a step, a handoff or a shared responsibility already in this review, so the risks stay tied to the process as it actually works. The team rates each one; the tool only multiplies the team's ratings to rank them.</p>
+  <div class="panel">
+    <div class="item-head"><h3>Failure modes, highest team-rated risk first</h3><span class="muted mono" id="fm-total"></span></div>
+    <div class="scroll-x"><table class="duty" id="fm-table"></table></div>
+    <p class="muted" style="font-size:.85rem">Ratings run from 1 to 10 and are the team's judgement. Occurrence: 10 = very likely to happen. Detection: 10 = very unlikely to be noticed before harm. Severity: 10 = most severe harm. The risk priority number (RPN) is occurrence × detection × severity. It ranks the team's own ratings; it does not decide whether a risk is acceptable.</p>
+  </div>
+  <form class="panel" id="fm-form" autocomplete="off">
+    <h3 id="fm-form-title">Add a failure mode</h3>
+    <label for="fm-target">Where in the process <span class="hint">a step, a handoff, or a shared responsibility from this review</span><select id="fm-target" required></select></label>
+    <label for="fm-mode">What could go wrong?<input id="fm-mode" required></label>
+    <div class="row">
+      <label for="fm-causes">Why would it happen?<textarea id="fm-causes" rows="2"></textarea></label>
+      <label for="fm-effects">What would the consequences be?<textarea id="fm-effects" rows="2"></textarea></label>
+    </div>
+    <fieldset class="picks"><legend>Roles affected</legend><div id="fm-roles" class="pick-list"></div></fieldset>
+    <div class="row">
+      <label for="fm-occ" style="flex:0 1 150px">Occurrence 1–10<input id="fm-occ" type="number" min="1" max="10" step="1"></label>
+      <label for="fm-det" style="flex:0 1 150px">Detection 1–10<input id="fm-det" type="number" min="1" max="10" step="1"></label>
+      <label for="fm-sev" style="flex:0 1 150px">Severity 1–10<input id="fm-sev" type="number" min="1" max="10" step="1"></label>
+    </div>
+    <fieldset class="picks"><legend>Actions that address it <span class="hint">from stage 8; optional</span></legend><div id="fm-actions" class="pick-list"></div></fieldset>
+    <div class="row"><button type="submit" id="fm-save">Add failure mode</button><button type="button" class="quiet" id="fm-cancel" hidden>Cancel editing</button></div>
+  </form>
+</section>
+
+<!-- 7 DRIVER DIAGRAM -->
+<section class="stage" id="s-drivers" data-stage="drivers" hidden>
+  <div><p class="eyebrow">Stage 7</p><h2>Driver diagram</h2></div>
+  <p class="lede">The team's theory of change: the aim, the primary drivers that most directly affect it, the secondary drivers that feed them, and the change ideas to test. Change ideas are the actions in stage 8. Each driver records which findings from this review it came from, so every proposed change can be traced back to what the review found.</p>
+  <div class="panel">
+    <label for="aim-text">Aim <span class="hint">what will improve, by how much, for whom, and by when</span><textarea id="aim-text" rows="2"></textarea></label>
+    <label for="aim-measure" style="max-width:520px">Outcome measure for the aim<select id="aim-measure"></select></label>
+  </div>
+  <div class="lane-frame" id="drv-chart"></div>
+  <div class="cols">
+    <form class="panel" id="drv-form" autocomplete="off">
+      <h3 id="drv-form-title">Add a driver</h3>
+      <div class="row">
+        <label for="drv-level" style="flex:0 1 200px">Level<select id="drv-level"><option value="primary">Primary driver</option><option value="secondary">Secondary driver</option></select></label>
+        <label for="drv-measure">How it will be measured <span class="hint">optional</span><select id="drv-measure"></select></label>
+      </div>
+      <label for="drv-text">Driver<input id="drv-text" required placeholder="e.g. Critical results reach the nurse responsible for the patient"></label>
+      <fieldset class="picks" id="drv-parents-wrap"><legend>Influences these primary drivers <span class="hint">one or more</span></legend><div id="drv-parents" class="pick-list"></div></fieldset>
+      <fieldset class="picks"><legend>Comes from these findings <span class="hint">optional, one or more</span></legend><div id="drv-sources" class="pick-list tall"></div></fieldset>
+      <div class="row"><button type="submit" id="drv-save">Add driver</button><button type="button" class="quiet" id="drv-cancel" hidden>Cancel editing</button></div>
+    </form>
+    <div class="panel"><h3>Drivers</h3><ul class="plain" id="drv-list"></ul></div>
+  </div>
+</section>
+
+<!-- 8 ACTIONS -->
 <section class="stage" id="s-actions" data-stage="actions" hidden>
-  <div><p class="eyebrow">Stage 6</p><h2>Actions</h2></div>
-  <p class="lede">Each causal statement should lead to at least one action. Actions that change the system, such as forcing functions or simpler processes, tend to hold up better than actions that rely on people remembering, such as training or a new policy. Give each action a measure and the point when its test starts; stage 7 then shows whether it made a difference.</p>
+  <div><p class="eyebrow">Stage 8</p><h2>Actions</h2></div>
+  <p class="lede">Each causal statement should lead to at least one action. Actions that change the system, such as forcing functions or simpler processes, tend to hold up better than actions that rely on people remembering, such as training or a new policy. Link each action to the drivers it is meant to move and the failure modes it should reduce, then give it a measure and the point when its test starts. Stage 9 shows whether it made a difference.</p>
   <div class="strength" id="tiers"></div>
   <div class="cols">
     <form class="panel" id="act-form" autocomplete="off">
       <h3>Add an action</h3>
       <label for="act-stmt">Addresses causal statement<select id="act-stmt"></select></label>
       <label for="act-type">Type of action<select id="act-type"></select></label>
-      <label for="act-text">Action<textarea id="act-text" rows="2" required></textarea></label>
+      <label for="act-text">Action <span class="hint">a change idea to test</span><textarea id="act-text" rows="2" required></textarea></label>
+      <fieldset class="picks"><legend>Secondary drivers it is meant to move <span class="hint">from the driver diagram; one or more</span></legend><div id="act-drivers" class="pick-list"></div></fieldset>
       <div class="row">
         <label for="act-owner">Responsible role<input id="act-owner" placeholder="e.g. Nurse manager"></label>
         <label for="act-due" style="flex:0 1 170px">Target date<input id="act-due" type="date"></label>
@@ -331,8 +398,8 @@ a { color: var(--accent); }
 
 <!-- 7 MEASURE -->
 <section class="stage" id="s-measure" data-stage="measure" hidden>
-  <div><p class="eyebrow">Stage 7</p><h2>Did the actions work?</h2></div>
-  <p class="lede">Each action from stage 6 is a test of change. Choose a measure to see its run chart. The point where each linked action's test started is marked on the chart, so you can see whether the change made a difference. With 10 or more points the chart draws the median.</p>
+  <div><p class="eyebrow">Stage 9</p><h2>Did the actions work?</h2></div>
+  <p class="lede">Each action from stage 8 is a test of change. Choose a measure to see its run chart. The point where each linked action's test started is marked on the chart, so you can see whether the change made a difference. With 10 or more points the chart draws the median.</p>
   <div class="panel">
     <div class="row">
       <label for="run-select">Measure<select id="run-select"></select></label>
@@ -354,7 +421,7 @@ a { color: var(--accent); }
       <label class="row" style="align-items:center;gap:8px;font-weight:400;flex:1 1 260px" for="run-pct"><input id="run-pct" type="checkbox" style="width:auto"> This measure is a percentage (keep the scale within 0 to 100)</label>
     </div>
     <label for="run-data">Data points in time order, one per line as "label, value"<textarea id="run-data" rows="8" class="mono"></textarea></label>
-    <label for="run-notes">Outside events that may have affected the process, one per line as "label, note" <span class="hint">tests of change come from the actions in stage 6</span><textarea id="run-notes" rows="3" class="mono"></textarea></label>
+    <label for="run-notes">Outside events that may have affected the process, one per line as "label, note" <span class="hint">tests of change come from the actions in stage 8</span><textarea id="run-notes" rows="3" class="mono"></textarea></label>
     <div class="row"><button type="button" id="run-apply">Update chart</button><button type="button" class="danger" id="run-del">Delete this measure</button></div>
   </div>
 </section>
@@ -442,9 +509,23 @@ const SAMPLE = {
     { id: "x2", cause: "the handover template has no field for pending results or held medications", effect: "the night nurse was not told about the lactate or the held antibiotic", event: "delayed treatment of sepsis" }
   ],
   actions: [
-    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measureId: "m1", start: "Wk 7" },
-    { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measureId: "m2", start: "Wk 9" },
-    { id: "a3", stmt: "x1", type: "weaker:Training", text: "Remind staff of the critical result policy at the safety huddle", owner: "Charge nurses", due: "", measureId: "m1", start: "Wk 3" }
+    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measureId: "m1", start: "Wk 7", drivers: ["q1", "q2"] },
+    { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measureId: "m2", start: "Wk 9", drivers: ["q3", "q2"] },
+    { id: "a3", stmt: "x1", type: "weaker:Training", text: "Remind staff of the critical result policy at the safety huddle", owner: "Charge nurses", due: "", measureId: "m1", start: "Wk 3", drivers: ["q2"] }
+  ],
+  aim: { text: "Raise to 90% the share of critical results acknowledged by the responsible nurse within 30 minutes on the surgical ward, by week 12", measureId: "m1" },
+  drivers: [
+    { id: "p1", level: "primary", text: "Critical results reach the nurse responsible for the patient", parents: [], measureId: "m1", sources: ["statement:x1", "cause:c1", "duty:d1", "failure:f1"] },
+    { id: "p2", level: "primary", text: "Pending results and held medications survive handover", parents: [], measureId: "m2", sources: ["statement:x2", "cause:c2", "failure:f2"] },
+    { id: "q1", level: "secondary", text: "Results are routed to the responsible nurse, not the unit phone", parents: ["p1"], measureId: "", sources: ["cause:c1", "handoff:s6"] },
+    { id: "q2", level: "secondary", text: "Receipt is confirmed back to whoever handed it over", parents: ["p1", "p2"], measureId: "", sources: ["handoff:s6", "handoff:s7", "assumption:s5"] },
+    { id: "q3", level: "secondary", text: "Handover lists every pending result and held medication", parents: ["p2"], measureId: "m2", sources: ["cause:c2", "assumption:s7"] }
+  ],
+  failures: [
+    { id: "f1", target: "handoff:s5", mode: "Critical result taken by someone not caring for the patient", causes: "Results are phoned to whoever answers the unit phone", effects: "Result not acted on; treatment delayed", roles: ["r4", "r2", "r1"], occ: 7, det: 6, sev: 8, actions: ["a1"] },
+    { id: "f2", target: "handoff:s7", mode: "Pending results not mentioned at handover", causes: "Handover template has no field for pending items", effects: "Incoming nurse unaware of an abnormal result", roles: ["r1", "r6"], occ: 6, det: 7, sev: 7, actions: ["a2"] },
+    { id: "f3", target: "step:s4", mode: "Order held without the prescriber being told", causes: "No defined route for allergy questions", effects: "First antibiotic dose delayed", roles: ["r5", "r3", "r1"], occ: 4, det: 6, sev: 7, actions: [] },
+    { id: "f4", target: "duty:d3", mode: "Rising early warning score not escalated again", causes: "Unclear who escalates when the resident is in theatre", effects: "Deterioration recognized late", roles: ["r1", "r3", "r2"], occ: 5, det: 5, sev: 9, actions: [] }
   ],
   measures: [
     { id: "m1", name: "% critical results acknowledged by the responsible nurse within 30 minutes (example data)", percent: true, goal: 90, events: [],
@@ -467,6 +548,7 @@ let editing = null;
 let whyParent = null;
 let selectedMeasure = null;
 const openRoles = new Set();
+let editingFailure = null, editingDriver = null;
 
 // ---------- helpers ----------
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -493,7 +575,7 @@ function dutyStatus(d) {
 function unclaimed() { return S.duties.filter(d => dutyStatus(d).k === "unclaimed"); }
 
 // ---------- routing ----------
-const STAGES = ["event", "timeline", "lanes", "ownership", "causes", "actions", "measure", "save"];
+const STAGES = ["event", "timeline", "lanes", "ownership", "causes", "risks", "drivers", "actions", "measure", "save"];
 function route() {
   let h = (location.hash || "").replace("#", "");
   if (!STAGES.includes(h)) h = "event";
@@ -501,6 +583,7 @@ function route() {
   document.querySelectorAll("nav.stages a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + h ? "page" : "false"));
   if (h === "lanes") renderLanes();
   if (h === "measure") renderRun();
+  if (h === "drivers") renderDriverChart();
 }
 window.addEventListener("hashchange", route);
 let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("s-lanes").hidden) renderLanes(); }, 150); });
@@ -508,7 +591,7 @@ let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTi
 // ---------- render all ----------
 function renderAll() {
   renderEvent(); renderRoles(); renderOverview(); renderStepForm(); renderSteps(); renderLanes(); renderDuties();
-  renderCauses(); renderStatements(); renderActions(); renderRunInputs(); renderRun();
+  renderCauses(); renderStatements(); renderFailures(); renderDrivers(); renderActions(); renderRunInputs(); renderRun();
   $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title ? (S.event.title.length > 48 ? S.event.title.slice(0, 46) + "…" : S.event.title) : "Untitled review") + "</span>";
 }
 
@@ -571,6 +654,8 @@ function renderOverview() {
     ["gap", unclaimed().length, "unclaimed responsibilities", "#ownership"],
     ["accent", S.statements.length, "causal statements", "#causes"],
     ["accent", S.actions.length, "actions planned", "#actions"],
+    ["gap", S.failures.filter(f => !(f.actions || []).some(id => S.actions.some(a => a.id === id))).length, "failure modes with no action", "#risks"],
+    ["accent", S.drivers.length, "drivers in the driver diagram", "#drivers"],
     ["accent", S.actions.filter(a => measureOf(a)).length, "actions with a measure", "#measure"]
   ];
   $("overview").innerHTML = tiles.map(t => '<a class="tally ' + t[0] + '" href="' + t[3] + '" style="text-decoration:none;color:inherit"><span class="n">' + t[1] + '</span><span class="k">' + esc(t[2]) + "</span></a>").join("");
@@ -729,6 +814,8 @@ function renderDetail() {
   if (from) h += '<span class="chip ' + (from.ack === "yes" ? "ok" : "gap") + '">Last handoff in: step ' + stepNo(from.id) + " from " + esc(roleName(from.role)) + "</span>";
   if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : "gap") + '">Handed to ' + esc(roleName(s.to)) + "</span>";
   down.forEach(d => { h += '<span class="chip accent">Step ' + stepNo(d.id) + " waited on this</span>"; });
+  const fms = S.failures.filter(f => f.target === "step:" + s.id || f.target === "handoff:" + s.id);
+  fms.forEach(f => { h += '<span class="chip gap">Failure mode: ' + esc(f.mode) + (rpnOf(f) ? " · RPN " + rpnOf(f) : "") + "</span>"; });
   h += '</div><div class="row"><button type="button" class="ghost small" id="detail-edit">Edit this step</button></div>';
   box.innerHTML = h;
   $("detail-edit").addEventListener("click", () => startEdit(s.id));
@@ -859,9 +946,188 @@ function renderStatements() {
   });
 }
 
-// ---------- stage 6 ----------
+// ---------- shared references: one id for each finding, used by the driver diagram, FMEA and actions ----------
+function pick(group, value, label, on) { return '<label><input type="checkbox" name="' + esc(group) + '" value="' + esc(value) + '"' + (on ? " checked" : "") + "> <span>" + esc(label) + "</span></label>"; }
+function checked(containerId) { return [...document.querySelectorAll("#" + containerId + " input:checked")].map(i => i.value); }
+function setChecked(containerId, values) { const v = new Set(values || []); document.querySelectorAll("#" + containerId + " input").forEach(i => { i.checked = v.has(i.value); }); }
+function refLabel(ref) {
+  const [k, id] = String(ref).split(":");
+  const st = S.steps.find(z => z.id === id);
+  if (k === "step") return st ? "Step " + stepNo(id) + " · " + roleName(st.role) + ": " + st.what : null;
+  if (k === "handoff") return st && st.to ? "Handoff, step " + stepNo(id) + " · " + roleName(st.role) + " → " + roleName(st.to) : null;
+  if (k === "assumption") return st && st.belief ? "Assumption, step " + stepNo(id) + " · " + roleName(st.role) + ": " + st.belief : null;
+  if (k === "duty") { const d = S.duties.find(z => z.id === id); return d ? "Shared responsibility · " + d.name : null; }
+  if (k === "cause") { const c = S.causes.find(z => z.id === id); return c ? "Contributing factor · " + c.text : null; }
+  if (k === "statement") { const i = S.statements.findIndex(z => z.id === id); return i >= 0 ? "Causal statement " + (i + 1) + " · " + S.statements[i].cause : null; }
+  if (k === "failure") { const f = S.failures.find(z => z.id === id); return f ? "Failure mode · " + f.mode : null; }
+  return null;
+}
+function findingGroups() {
+  const steps = sortedSteps();
+  return [
+    ["Causal statements", S.statements.map(x => "statement:" + x.id)],
+    ["Contributing factors", S.causes.map(x => "cause:" + x.id)],
+    ["Failure modes", S.failures.map(x => "failure:" + x.id)],
+    ["Shared responsibilities", S.duties.map(x => "duty:" + x.id)],
+    ["Handoffs", steps.filter(x => x.to).map(x => "handoff:" + x.id)],
+    ["Assumptions", steps.filter(x => x.belief && x.belief.trim()).map(x => "assumption:" + x.id)]
+  ].filter(g => g[1].length);
+}
+function rpnOf(f) { return f.occ && f.det && f.sev ? f.occ * f.det * f.sev : null; }
+function clampRating(v) { const n = Math.round(Number(v)); return v === "" || isNaN(n) ? null : Math.min(10, Math.max(1, n)); }
+
+// ---------- stage 6: FMEA ----------
+function renderFailures() {
+  const steps = sortedSteps();
+  const cur = $("fm-target").value;
+  $("fm-target").innerHTML = '<option value="">Choose…</option>' +
+    '<optgroup label="Steps">' + steps.map(x => '<option value="step:' + esc(x.id) + '">' + esc(refLabel("step:" + x.id).slice(0, 90)) + "</option>").join("") + "</optgroup>" +
+    '<optgroup label="Handoffs">' + steps.filter(x => x.to).map(x => '<option value="handoff:' + esc(x.id) + '">' + esc(refLabel("handoff:" + x.id)) + "</option>").join("") + "</optgroup>" +
+    '<optgroup label="Shared responsibilities">' + S.duties.map(d => '<option value="duty:' + esc(d.id) + '">' + esc(d.name) + "</option>").join("") + "</optgroup>";
+  if (cur) $("fm-target").value = cur;
+  const keepRoles = checked("fm-roles"), keepActs = checked("fm-actions");
+  $("fm-roles").innerHTML = S.roles.map(r => pick("fm-roles", r.id, r.name)).join("") || '<span class="muted">Add roles in stage 1.</span>';
+  $("fm-actions").innerHTML = S.actions.map(a => pick("fm-actions", a.id, actionLabel(a) + ". " + a.text)).join("") || '<span class="muted" style="font-size:.85rem">No actions yet.</span>';
+  setChecked("fm-roles", keepRoles); setChecked("fm-actions", keepActs);
+  const rows = S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1));
+  const total = rows.reduce((t, f) => t + (rpnOf(f) || 0), 0), unrated = rows.filter(f => !rpnOf(f)).length;
+  $("fm-total").textContent = rows.length ? "Total RPN " + total + (unrated ? " · " + unrated + " not yet rated" : "") : "";
+  if (!rows.length) { $("fm-table").innerHTML = '<tr><td class="muted">No failure modes yet. Start with a handoff or a shared responsibility that was flagged in this review.</td></tr>'; return; }
+  let h = "<thead><tr><th>Where</th><th>Failure mode</th><th>Causes</th><th>Effects</th><th>Roles affected</th><th>O</th><th>D</th><th>S</th><th>RPN</th><th>Actions</th><th></th></tr></thead><tbody>";
+  rows.forEach(f => {
+    const acts = (f.actions || []).map(id => S.actions.find(a => a.id === id)).filter(Boolean);
+    h += "<tr><td>" + esc(refLabel(f.target) || "No longer in this review") + "</td><td><b>" + esc(f.mode) + "</b></td><td>" + esc(f.causes) + "</td><td>" + esc(f.effects) + "</td><td>" +
+      (f.roles || []).map(id => '<span class="chip">' + esc(roleName(id)) + "</span>").join(" ") + '</td><td class="mono">' + (f.occ || "–") + '</td><td class="mono">' + (f.det || "–") + '</td><td class="mono">' + (f.sev || "–") +
+      '</td><td class="rpn">' + (rpnOf(f) || '<span class="muted">not rated</span>') + "</td><td>" + (acts.length ? acts.map(a => '<span class="chip ' + (tierOf(a.type) === "weaker" ? "assume" : tierOf(a.type) === "stronger" ? "ok" : "accent") + '">' + esc(actionLabel(a)) + "</span>").join(" ") : '<span class="chip gap">No action</span>') +
+      '</td><td><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-edit="' + esc(f.id) + '">Edit</button><button type="button" class="quiet small" data-del="' + esc(f.id) + '">Delete</button></span></td></tr>';
+  });
+  $("fm-table").innerHTML = h + "</tbody>";
+  $("fm-table").querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => { const id = b.dataset.del; S.failures = S.failures.filter(z => z.id !== id); S.drivers.forEach(d => { d.sources = (d.sources || []).filter(x => x !== "failure:" + id); }); if (editingFailure === id) stopFailureEdit(); renderAll(); }));
+  $("fm-table").querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => startFailureEdit(b.dataset.edit)));
+}
+function startFailureEdit(id) {
+  const f = S.failures.find(z => z.id === id); if (!f) return;
+  editingFailure = id; renderFailures();
+  $("fm-target").value = f.target; $("fm-mode").value = f.mode; $("fm-causes").value = f.causes || ""; $("fm-effects").value = f.effects || "";
+  $("fm-occ").value = f.occ || ""; $("fm-det").value = f.det || ""; $("fm-sev").value = f.sev || "";
+  setChecked("fm-roles", f.roles); setChecked("fm-actions", f.actions);
+  $("fm-form-title").textContent = "Edit failure mode"; $("fm-save").textContent = "Save changes"; $("fm-cancel").hidden = false; $("fm-mode").focus();
+}
+function stopFailureEdit() { editingFailure = null; $("fm-form").reset(); setChecked("fm-roles", []); setChecked("fm-actions", []); $("fm-form-title").textContent = "Add a failure mode"; $("fm-save").textContent = "Add failure mode"; $("fm-cancel").hidden = true; }
+$("fm-cancel").addEventListener("click", stopFailureEdit);
+$("fm-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const rec = { target: $("fm-target").value, mode: $("fm-mode").value.trim(), causes: $("fm-causes").value.trim(), effects: $("fm-effects").value.trim(), roles: checked("fm-roles"),
+    occ: clampRating($("fm-occ").value), det: clampRating($("fm-det").value), sev: clampRating($("fm-sev").value), actions: checked("fm-actions") };
+  if (!rec.target) { $("fm-target").focus(); return; }
+  if (!rec.mode) { $("fm-mode").focus(); return; }
+  if (editingFailure) Object.assign(S.failures.find(z => z.id === editingFailure), rec); else S.failures.push(Object.assign({ id: uid("f") }, rec));
+  stopFailureEdit(); renderAll();
+});
+
+// ---------- stage 7: driver diagram ----------
+function measureOptions(sel, cur) { $(sel).innerHTML = '<option value="">None yet</option>' + S.measures.map(m => '<option value="' + esc(m.id) + '">' + esc(m.name.slice(0, 80)) + "</option>").join(""); $(sel).value = cur && S.measures.some(m => m.id === cur) ? cur : ""; }
+function renderDrivers() {
+  $("aim-text").value = S.aim.text || ""; measureOptions("aim-measure", S.aim.measureId);
+  measureOptions("drv-measure", $("drv-measure").value);
+  const keepP = checked("drv-parents"), keepS = checked("drv-sources");
+  const prim = S.drivers.filter(d => d.level === "primary");
+  $("drv-parents").innerHTML = prim.length ? prim.map(d => pick("drv-parents", d.id, d.text)).join("") : '<span class="muted" style="font-size:.85rem">Add a primary driver first.</span>';
+  $("drv-sources").innerHTML = findingGroups().map(g => '<div class="grp">' + esc(g[0]) + "</div>" + g[1].map(r => pick("drv-sources", r, refLabel(r).replace(/^[^·]*· /, ""))).join("")).join("") || '<span class="muted" style="font-size:.85rem">No findings yet.</span>';
+  setChecked("drv-parents", keepP); setChecked("drv-sources", keepS);
+  $("drv-parents-wrap").hidden = $("drv-level").value !== "secondary";
+  const ul = $("drv-list"); ul.innerHTML = "";
+  if (!S.drivers.length) ul.innerHTML = '<li class="muted">No drivers yet. Start with two to five primary drivers.</li>';
+  const order = prim.concat(S.drivers.filter(d => d.level !== "primary"));
+  order.forEach(d => {
+    const kids = S.actions.filter(a => (a.drivers || []).includes(d.id));
+    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div><p class="what"></p><div class="chips" data-x></div></li>');
+    li.querySelector(".chips").innerHTML = '<span class="chip accent">' + (d.level === "primary" ? "Primary" : "Secondary") + "</span>" + (d.measureId && S.measures.some(m => m.id === d.measureId) ? '<span class="chip">Measured</span>' : "");
+    li.querySelector(".what").textContent = d.text;
+    let x = "";
+    if (d.level === "secondary") { const ps = (d.parents || []).map(id => S.drivers.find(z => z.id === id)).filter(Boolean); x += ps.length ? ps.map(p => '<span class="chip">Moves: ' + esc(p.text.slice(0, 50)) + "</span>").join("") : '<span class="chip gap">Not linked to a primary driver</span>'; x += kids.length ? kids.map(a => '<span class="chip">' + esc(actionLabel(a)) + "</span>").join("") : '<span class="chip gap">No change idea yet</span>'; }
+    const srcs = (d.sources || []).map(refLabel).filter(Boolean);
+    x += srcs.length ? '<span class="chip ok">From ' + srcs.length + (srcs.length === 1 ? " finding" : " findings") + "</span>" : '<span class="chip assume">Not traced to a finding</span>';
+    li.querySelector("[data-x]").innerHTML = x;
+    li.querySelector('[data-a="edit"]').addEventListener("click", () => startDriverEdit(d.id));
+    li.querySelector('[data-a="del"]').addEventListener("click", () => { S.drivers = S.drivers.filter(z => z.id !== d.id); S.drivers.forEach(z => { z.parents = (z.parents || []).filter(y => y !== d.id); }); S.actions.forEach(a => { a.drivers = (a.drivers || []).filter(y => y !== d.id); }); if (editingDriver === d.id) stopDriverEdit(); renderAll(); });
+    ul.appendChild(li);
+  });
+  if (!$("s-drivers").hidden) renderDriverChart();
+}
+function startDriverEdit(id) {
+  const d = S.drivers.find(z => z.id === id); if (!d) return;
+  editingDriver = id; $("drv-level").value = d.level; renderDrivers();
+  $("drv-text").value = d.text; measureOptions("drv-measure", d.measureId); setChecked("drv-parents", d.parents); setChecked("drv-sources", d.sources);
+  $("drv-form-title").textContent = "Edit driver"; $("drv-save").textContent = "Save changes"; $("drv-cancel").hidden = false; $("drv-text").focus();
+}
+function stopDriverEdit() { editingDriver = null; $("drv-form").reset(); setChecked("drv-parents", []); setChecked("drv-sources", []); $("drv-parents-wrap").hidden = true; $("drv-form-title").textContent = "Add a driver"; $("drv-save").textContent = "Add driver"; $("drv-cancel").hidden = true; }
+$("drv-cancel").addEventListener("click", stopDriverEdit);
+$("drv-level").addEventListener("change", () => { $("drv-parents-wrap").hidden = $("drv-level").value !== "secondary"; });
+$("aim-text").addEventListener("input", e => { S.aim.text = e.target.value; renderDriverChart(); });
+$("aim-measure").addEventListener("change", e => { S.aim.measureId = e.target.value; renderDriverChart(); });
+$("drv-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const rec = { level: $("drv-level").value, text: $("drv-text").value.trim(), measureId: $("drv-measure").value, sources: checked("drv-sources"), parents: $("drv-level").value === "secondary" ? checked("drv-parents") : [] };
+  if (!rec.text) { $("drv-text").focus(); return; }
+  if (editingDriver) { if (rec.parents.includes(editingDriver)) rec.parents = rec.parents.filter(x => x !== editingDriver); Object.assign(S.drivers.find(z => z.id === editingDriver), rec); if (rec.level === "primary") S.actions.forEach(a => { a.drivers = (a.drivers || []).filter(y => y !== editingDriver); }); }
+  else S.drivers.push(Object.assign({ id: uid("d") }, rec));
+  stopDriverEdit(); renderAll();
+});
+function wrapLines(text, max) { const out = []; let line = ""; String(text).split(/\s+/).forEach(w => { if ((line + " " + w).trim().length > max && line) { out.push(line); line = w; } else line = (line + " " + w).trim(); }); if (line) out.push(line); return out.slice(0, 6); }
+function renderDriverChart() {
+  const box = $("drv-chart");
+  const prim = S.drivers.filter(d => d.level === "primary"), sec = S.drivers.filter(d => d.level === "secondary");
+  const acts = S.actions.filter(a => (a.drivers || []).some(id => sec.some(d => d.id === id)));
+  if (!S.aim.text && !S.drivers.length) { box.innerHTML = '<p class="muted" style="padding:16px">Write the aim and add drivers to draw the diagram.</p>'; return; }
+  const C = { accent: cssVar("--accent"), soft: cssVar("--accent-soft"), line: cssVar("--line"), muted: cssVar("--muted"), surface: cssVar("--surface"), ink: cssVar("--ink"), ok: cssVar("--ok"), assume: cssVar("--assume"), gap: cssVar("--gap") };
+  const BW = 210, GAP = 64, PAD = 16, LH = 15, CH = 26;
+  const cols = [[{ id: "aim", text: S.aim.text || "Aim not written yet", kind: "aim" }], prim.map(d => ({ id: d.id, text: d.text, kind: "primary", d })), sec.map(d => ({ id: d.id, text: d.text, kind: "secondary", d })), acts.map(a => ({ id: a.id, text: actionLabel(a) + ". " + a.text, kind: "action", a }))];
+  const heads = ["Aim", "Primary drivers", "Secondary drivers", "Change ideas (actions)"];
+  const pos = {}; let maxH = 0;
+  cols.forEach(col => { let h = 0; col.forEach(n => { n.lines = wrapLines(n.text, CH); n.h = n.lines.length * LH + 18 + (n.kind !== "aim" && n.kind !== "action" && n.d.measureId ? LH : 0); h += n.h + 14; }); col.H = h; maxH = Math.max(maxH, h); });
+  const W = PAD * 2 + BW * 4 + GAP * 3, H = maxH + 44;
+  cols.forEach((col, ci) => { let yy = 36 + (maxH - col.H) / 2; col.forEach(n => { pos[n.id] = { x: PAD + ci * (BW + GAP), y: yy, h: n.h }; yy += n.h + 14; }); });
+  let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Driver diagram">';
+  heads.forEach((t, ci) => { svg += '<text x="' + (PAD + ci * (BW + GAP) + BW / 2) + '" y="20" text-anchor="middle" style="font-size:12px;font-weight:700;letter-spacing:.04em" fill="' + C.muted + '">' + esc(t.toUpperCase()) + "</text>"; });
+  const link = (from, to, color) => { const a = pos[from], b = pos[to]; if (!a || !b) return; const x1 = a.x + BW, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2; svg += '<path d="M' + x1 + "," + y1 + " C" + (x1 + GAP / 2) + "," + y1 + " " + (x2 - GAP / 2) + "," + y2 + " " + x2 + "," + y2 + '" fill="none" stroke="' + (color || C.muted) + '" stroke-width="1.5"/>'; };
+  prim.forEach(d => link("aim", d.id));
+  sec.forEach(d => (d.parents || []).forEach(p => link(p, d.id)));
+  acts.forEach(a => (a.drivers || []).forEach(id => link(id, a.id)));
+  cols.forEach(col => col.forEach(n => {
+    const p = pos[n.id];
+    const stroke = n.kind === "aim" ? C.accent : n.kind === "action" ? (tierOf(n.a.type) === "stronger" ? C.ok : tierOf(n.a.type) === "weaker" ? C.assume : C.accent) : C.line;
+    const fill = n.kind === "aim" ? C.soft : C.surface;
+    const orphan = (n.kind === "secondary" && !(n.d.parents || []).length) || (n.kind === "secondary" && !S.actions.some(a => (a.drivers || []).includes(n.id)));
+    svg += '<rect x="' + p.x + '" y="' + p.y + '" width="' + BW + '" height="' + p.h + '" rx="8" fill="' + fill + '" stroke="' + (orphan ? C.gap : stroke) + '" stroke-width="' + (n.kind === "aim" || n.kind === "action" ? 2 : 1.3) + '"' + (orphan ? ' stroke-dasharray="5 3"' : "") + "/>";
+    n.lines.forEach((ln, i) => { svg += '<text x="' + (p.x + 10) + '" y="' + (p.y + 18 + i * LH) + '" style="font-size:12.5px' + (n.kind === "aim" ? ";font-weight:700" : "") + '" fill="' + C.ink + '">' + esc(ln) + "</text>"; });
+    if (n.d && n.d.measureId) { const m = S.measures.find(z => z.id === n.d.measureId); if (m) svg += '<text x="' + (p.x + 10) + '" y="' + (p.y + 18 + n.lines.length * LH) + '" style="font-size:11px" fill="' + C.muted + '">measured ✓</text>'; }
+    svg += "<title>" + esc(n.text) + "</title>";
+  }));
+  svg += "</svg>";
+  box.innerHTML = svg;
+}
+function traceHtml(a) {
+  const ds = (a.drivers || []).map(id => S.drivers.find(d => d.id === id)).filter(Boolean);
+  const prims = [...new Set(ds.flatMap(d => d.parents || []))].map(id => S.drivers.find(d => d.id === id)).filter(Boolean);
+  const fms = S.failures.filter(f => (f.actions || []).includes(a.id));
+  const srcs = [...new Set(ds.concat(prims).flatMap(d => d.sources || []).concat(fms.map(f => "failure:" + f.id)).concat(a.stmt ? ["statement:" + a.stmt] : []))].map(refLabel).filter(Boolean);
+  const m = measureOf(a); let result = "No measure yet";
+  if (m && m.points.length) {
+    const i = a.start ? m.points.findIndex(p => p[0] === a.start) : -1;
+    if (i > 0 && i < m.points.length) { const before = m.points.slice(0, i).map(p => p[1]), after = m.points.slice(i).map(p => p[1]); result = "Median before the test " + median(before) + ", from the test on " + median(after) + " (" + after.length + (after.length === 1 ? " point" : " points") + ")" + (m.goal != null ? "; goal " + m.goal : ""); }
+    else result = m.points.length + " data points; set the test start to compare before and after";
+  }
+  return '<div><b>Traced back to:</b> ' + (srcs.length ? srcs.map(t => esc(t)).join(" · ") : '<span class="muted">no findings linked yet</span>') + "</div>" +
+    "<div><b>Meant to move:</b> " + (ds.length ? ds.map(d => esc(d.text)).join(" · ") : '<span class="muted">no driver linked yet</span>') + "</div>" +
+    "<div><b>Result so far:</b> " + esc(result) + "</div>";
+}
+
+// ---------- stage 8 ----------
 function tierOf(type) { return (type || "").split(":")[0]; }
 function renderActions() {
+  const secs = S.drivers.filter(d => d.level === "secondary");
+  $("act-drivers").innerHTML = secs.length ? secs.map(d => pick("act-drivers", d.id, d.text)).join("") : '<span class="muted" style="font-size:.85rem">No secondary drivers yet. Add them in the driver diagram (stage 7).</span>';
   $("act-stmt").innerHTML = '<option value="">Not linked</option>' + S.statements.map((st, i) => '<option value="' + esc(st.id) + '">Statement ' + (i + 1) + ": " + esc(st.cause.slice(0, 70)) + "</option>").join("");
   $("act-type").innerHTML = Object.keys(HIERARCHY).map(k => '<optgroup label="' + esc(HIERARCHY[k].label) + '">' + HIERARCHY[k].types.map(t => '<option value="' + esc(k + ":" + t) + '">' + esc(t) + "</option>").join("") + "</optgroup>").join("");
   $("tiers").innerHTML = Object.keys(HIERARCHY).map(k => {
@@ -879,7 +1145,7 @@ function renderActions() {
   S.actions.forEach(a => {
     const k = tierOf(a.type), t = (a.type || "").split(":")[1] || "";
     const sIdx = S.statements.findIndex(st => st.id === a.stmt);
-    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><button type="button" class="quiet small" data-a="del">Delete</button></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p><div class="chips" data-m></div></li>');
+    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><button type="button" class="quiet small" data-a="del">Delete</button></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p><div class="chips" data-m></div><div class="trace" data-trace></div></li>');
     li.querySelector(".chips").innerHTML = '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc((HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + " · " + t) + "</span>" + (sIdx >= 0 ? '<span class="chip">Statement ' + (sIdx + 1) + "</span>" : '<span class="chip gap">Not linked to a statement</span>');
     li.querySelector(".what").textContent = actionLabel(a) + ". " + a.text;
     li.querySelector(".muted").textContent = [a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due].filter(Boolean).join(" · ") || "No responsible role yet";
@@ -892,7 +1158,8 @@ function renderActions() {
       b.addEventListener("click", () => { selectedMeasure = m.id; renderRunInputs(); location.hash = "measure"; });
       mbox.appendChild(b);
     }
-    li.querySelector('[data-a="del"]').addEventListener("click", () => { S.actions = S.actions.filter(z => z.id !== a.id); renderAll(); });
+    li.querySelector("[data-trace]").innerHTML = traceHtml(a);
+    li.querySelector('[data-a="del"]').addEventListener("click", () => { S.actions = S.actions.filter(z => z.id !== a.id); S.failures.forEach(f => { f.actions = (f.actions || []).filter(x => x !== a.id); }); renderAll(); });
     ul.appendChild(li);
   });
 }
@@ -904,7 +1171,7 @@ $("act-form").addEventListener("submit", e => {
     if (!name) { $("act-measure-new").focus(); return; }
     mid = uid("m"); S.measures.push({ id: mid, name, percent: /%|percent/i.test(name), goal: null, events: [], points: [] });
   }
-  S.actions.push({ id: uid("a"), stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measureId: mid, start: $("act-start").value.trim() });
+  S.actions.push({ id: uid("a"), stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measureId: mid, start: $("act-start").value.trim(), drivers: checked("act-drivers") });
   $("act-form").reset(); renderAll();
 });
 $("act-measure").addEventListener("change", () => { $("act-measure-new-wrap").hidden = $("act-measure").value !== "__new__"; if (!$("act-measure-new-wrap").hidden) $("act-measure-new").focus(); });
@@ -976,9 +1243,9 @@ function runSignals(vals, med) {
 function renderRun() {
   const box = $("run-chart"), m = currentMeasure();
   const links = $("run-links");
-  if (!m) { box.innerHTML = '<p class="muted">No measures yet. Give an action a measure in stage 6, or add one here.</p>'; $("run-signals").innerHTML = ""; links.innerHTML = ""; return; }
+  if (!m) { box.innerHTML = '<p class="muted">No measures yet. Give an action a measure in stage 8, or add one here.</p>'; $("run-signals").innerHTML = ""; links.innerHTML = ""; return; }
   const linked = S.actions.filter(a => a.measureId === m.id);
-  links.innerHTML = linked.length ? linked.map(a => { const k = tierOf(a.type), st = actionStartStatus(a, m); return '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc(actionLabel(a) + " · " + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + a.text.slice(0, 60) + (a.text.length > 60 ? "…" : "")) + "</span>" + (st.cls !== "ok" ? '<span class="chip assume">' + esc(actionLabel(a) + ": " + st.label) + "</span>" : ""); }).join("") : '<span class="chip gap">No action is linked to this measure. Link one in stage 6.</span>';
+  links.innerHTML = linked.length ? linked.map(a => { const k = tierOf(a.type), st = actionStartStatus(a, m); return '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc(actionLabel(a) + " · " + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + a.text.slice(0, 60) + (a.text.length > 60 ? "…" : "")) + "</span>" + (st.cls !== "ok" ? '<span class="chip assume">' + esc(actionLabel(a) + ": " + st.label) + "</span>" : ""); }).join("") : '<span class="chip gap">No action is linked to this measure. Link one in stage 8.</span>';
   const pts = m.points;
   if (pts.length < 2) { box.innerHTML = '<p class="muted">Enter at least two data points below.</p>'; $("run-signals").innerHTML = ""; return; }
   const vals = pts.map(p => p[1]), showMed = pts.length >= 10, med = median(vals);
@@ -1031,6 +1298,8 @@ function report() {
   L.push(""); L.push("CONTRIBUTING FACTORS"); S.categories.forEach(c => { const l = S.causes.filter(z => z.cat === c); if (l.length) { L.push(c + ":"); l.forEach(z => L.push("  - " + z.text)); } });
   L.push(""); L.push("CAUSAL STATEMENTS"); S.statements.forEach((st, i) => L.push((i + 1) + ". Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + "."));
   L.push(""); L.push("ACTIONS"); S.actions.forEach(a => { const k = tierOf(a.type); L.push("- [" + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + (a.type.split(":")[1] || "") + "] " + a.text + (a.owner ? " | Responsible: " + a.owner : "") + (measureOf(a) ? " | Measure: " + measureOf(a).name + (a.start ? " (test starts " + a.start + ")" : "") : " | No measure")); });
+  L.push(""); L.push("FAILURE MODES (team ratings; RPN = occurrence x detection x severity)"); S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1)).forEach(f => L.push("- " + (refLabel(f.target) || "?") + " | " + f.mode + " | causes: " + (f.causes || "-") + " | effects: " + (f.effects || "-") + " | roles: " + (f.roles || []).map(roleName).join(", ") + " | O" + (f.occ || "-") + " D" + (f.det || "-") + " S" + (f.sev || "-") + " RPN " + (rpnOf(f) || "not rated") + " | actions: " + ((f.actions || []).map(id => { const a = S.actions.find(z => z.id === id); return a ? actionLabel(a) : null; }).filter(Boolean).join(", ") || "none")));
+  L.push(""); L.push("DRIVER DIAGRAM"); L.push("Aim: " + (S.aim.text || "-")); S.drivers.filter(d => d.level === "primary").forEach(p => { L.push("- Primary: " + p.text); S.drivers.filter(d => (d.parents || []).includes(p.id)).forEach(d => L.push("    - Secondary: " + d.text + " | change ideas: " + (S.actions.filter(a => (a.drivers || []).includes(d.id)).map(actionLabel).join(", ") || "none"))); });
   L.push(""); L.push("MEASURES"); S.measures.forEach(m => { const v = m.points.map(p => p[1]); L.push("- " + m.name + (m.goal != null ? " | Goal: " + m.goal : "") + " | " + v.length + " data points" + (v.length ? ", latest " + v[v.length - 1] : "") + (v.length >= 10 ? ", median " + median(v) : "")); S.actions.filter(a => a.measureId === m.id).forEach(a => L.push("    tested by " + actionLabel(a) + (a.start ? " from " + a.start : "") + ": " + a.text)); });
   L.push(""); L.push("Prepared with the ICA Safety Review prototype. Fictional or de-identified data only.");
   return L.join("\n");
@@ -1039,13 +1308,17 @@ function load(text) {
   try {
     const o = JSON.parse(text);
     if (!o || !Array.isArray(o.roles) || !Array.isArray(o.steps) || !o.event) throw new Error("not a review");
+    if (!o.aim) o.aim = { text: "", measureId: "" };
+    if (!o.drivers) o.drivers = [];
+    if (!o.failures) o.failures = [];
+    (o.actions || []).forEach(a => { if (!a.drivers) a.drivers = []; });
     if (!o.measures) {
       o.measures = o.run && Array.isArray(o.run.points) ? [{ id: "m1", name: o.run.name || "Measure", percent: !!o.run.percent, goal: null, events: o.run.notes || [], points: o.run.points }] : [];
       (o.actions || []).forEach(a => { if (!a.measureId && a.measure && o.measures[0] && a.measure.trim() && o.measures[0].name.indexOf(a.measure.trim()) === 0) a.measureId = "m1"; });
       delete o.run;
     }
     const base = clone(SAMPLE); Object.keys(base).forEach(k => { if (o[k] === undefined) o[k] = Array.isArray(base[k]) ? [] : base[k]; });
-    S = o; selected = null; editing = null; selectedMeasure = null; renderAll(); $("load-msg").textContent = "Review loaded."; return true;
+    S = o; selected = null; editing = null; selectedMeasure = null; editingFailure = null; editingDriver = null; renderAll(); $("load-msg").textContent = "Review loaded."; return true;
   } catch (e) { $("load-msg").textContent = "That is not review data from this tool. Copy it again with Copy review data and paste the whole text."; return false; }
 }
 $("load-btn").addEventListener("click", () => { if (load($("load-paste").value)) $("load-paste").value = ""; });
@@ -1059,7 +1332,7 @@ function twoStep(btn, label, fn) {
 }
 twoStep($("reset-sample"), "Click again to replace this review", () => { S = clone(SAMPLE); selected = null; selectedMeasure = null; renderAll(); $("load-msg").textContent = "Example case loaded."; });
 twoStep($("reset-blank"), "Click again to clear everything", () => {
-  S = { version: 1, event: { title: "", setting: "", summary: "", outcome: "" }, roles: [], steps: [], duties: [], categories: SAMPLE.categories.slice(), causes: [], statements: [], actions: [], measures: [] };
+  S = { version: 1, event: { title: "", setting: "", summary: "", outcome: "" }, roles: [], steps: [], duties: [], categories: SAMPLE.categories.slice(), causes: [], statements: [], actions: [], measures: [], aim: { text: "", measureId: "" }, drivers: [], failures: [] };
   selected = null; renderAll(); $("load-msg").textContent = "Blank review started."; location.hash = "event";
 });
 
