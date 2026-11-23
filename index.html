@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Guided patient-safety event review with role swimlanes, process conditions, hidden assumptions, cause and effect, FMEA, driver diagram, actions, run charts and a summary report. For fictional or de-identified cases only.">
-<title>ICA Safety Review</title>
+<meta name="description" content="Seamline: Process Intelligence &amp; Safety Improvement. Trace the conditions behind continuity. Guided patient-safety event review with role swimlanes, process conditions, hidden assumptions, cause and effect, FMEA, driver diagram, actions, run charts and a summary report. For fictional or de-identified cases only.">
+<title>Seamline</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
@@ -281,7 +281,7 @@ h2[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4
 <header class="top" id="top">
   <div class="top-row">
     <button type="button" class="ghost small menu-btn" id="menu-btn" aria-expanded="false" aria-controls="side"><span aria-hidden="true">☰</span> <span id="menu-label">Stages</span></button>
-    <h1>ICA Safety Review <small>Event review with swimlanes, hidden assumptions and RCA</small></h1>
+    <h1>Seamline <small>Process Intelligence &amp; Safety Improvement</small></h1>
     <div class="row top-tools"><span class="chips" id="case-chip"></span><a class="btn small" href="#summary" id="top-summary">Summary</a></div>
   </div>
 </header>
@@ -690,7 +690,8 @@ h2[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4
   </div>
   <div class="panel">
     <h3>About this tool</h3>
-    <p>This is an early prototype built on the ICA Project Cloud model: each role is a workstream with its own lane, a shared responsibility is a constraint several workstreams touch, and handoffs are exchanges across lane boundaries. A review shows where independently organized work met and failed to connect.</p>
+    <p><b>Seamline: Process Intelligence &amp; Safety Improvement.</b> Trace the conditions behind continuity.</p>
+    <p>Seamline is an early prototype built on the ICA Project Cloud model: each role is a workstream with its own lane, a shared responsibility is a constraint several workstreams touch, and handoffs are exchanges across lane boundaries. A review shows where independently organized work met and failed to connect.</p>
     <p>The methods follow quality improvement tools described by the Institute for Healthcare Improvement (cause and effect diagram, flowchart and run chart, from the QI Essentials Toolkit) and the RCA² approach to root cause analysis, including its rules for causal statements and its action hierarchy. All wording here is original. This tool is not affiliated with or endorsed by IHI. The original materials are at <a href="https://www.ihi.org" target="_blank" rel="noopener">ihi.org</a>.</p>
     <p>The six process domains used for process conditions (demand and capacity, information integrity, responsibility and decision rights, handoff and dependency continuity, execution and functional completion, adaptation and interruption capacity) are provisional analysis categories for this tool. They are not a validated implementation of ICA theory.</p>
     <p>The tool records what people tell it. It does not decide root causes, rate anyone's performance, or determine fault. An absent record is reported as "not established", never as proof that something failed.</p>
@@ -700,7 +701,7 @@ h2[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4
 </main>
 
 <footer class="wrap">
-  <p>ICA Safety Review prototype. For fictional or de-identified cases only. Not a clinical decision tool. Not affiliated with or endorsed by the Institute for Healthcare Improvement.</p>
+  <p>Seamline: Process Intelligence &amp; Safety Improvement. Trace the conditions behind continuity. Prototype for fictional or de-identified cases only. Not a clinical decision tool. Not affiliated with or endorsed by the Institute for Healthcare Improvement.</p>
   <p>The example case is invented for demonstration.</p>
 </footer>
   </div>
@@ -922,7 +923,7 @@ function route(moved) {
   const ts = $("top-summary"); if (h === "summary") ts.setAttribute("aria-current", "page"); else ts.removeAttribute("aria-current");
   const lbl = document.querySelector('nav.stages a[data-stage="' + h + '"] .lbl');
   $("menu-label").textContent = lbl ? lbl.textContent : "Stages";
-  document.title = (lbl ? lbl.textContent + " · " : "") + "ICA Safety Review";
+  document.title = (lbl ? lbl.textContent + " · " : "") + "Seamline";
   if (h === "lanes") renderLanes();
   if (h === "measure") renderRun();
   if (h === "drivers") renderDriverChart();
@@ -2009,7 +2010,7 @@ function renderSummary() {
   const list = arr => arr.length <= 1 ? arr.join("") : arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
   const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
   let h = "";
-  h += '<header><p class="eyebrow">ICA Safety Improvement Review</p><h1>' + esc(S.event.title || "Untitled review") + '</h1><p class="sub">' + esc(S.event.setting || "") + (S.event.setting ? " · " : "") + "Generated from the review data · Fictional or de-identified data only</p></header>";
+  h += '<header><p class="eyebrow">Seamline · Safety improvement review</p><h1>' + esc(S.event.title || "Untitled review") + '</h1><p class="sub">' + esc(S.event.setting || "") + (S.event.setting ? " · " : "") + "Generated from the review data · Fictional or de-identified data only</p></header>";
   h += '<section class="adds">' + addsHtml("h2", false) + "</section>";
 
   // Executive summary
@@ -2137,7 +2138,7 @@ function renderSummary() {
   if (S.measures.length) { const types = new Set(S.measures.map(m => m.type || "process")); items.push((types.has("outcome") ? "" : "All measures in this review are process or condition measures. ") + "They show whether the process changed. They do not by themselves establish that patient outcomes, such as treatment delays, improved, or that escalation capacity was preserved." + (types.has("balancing") ? "" : " No balancing measure is recorded.")); }
   if (items.length) h += "<section><h2>Items requiring investigation</h2><ul>" + items.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul></section>";
 
-  h += '<footer class="note" style="border:0;padding:0">Prepared with ICA Safety Review from the team\'s own entries. The tool does not decide root causes, rate performance or determine fault. Methods follow IHI quality improvement tools and RCA²; not affiliated with or endorsed by IHI.</footer>';
+  h += '<footer class="note" style="border:0;padding:0">Prepared with Seamline from the team\'s own entries. The tool does not decide root causes, rate performance or determine fault. Methods follow IHI quality improvement tools and RCA²; not affiliated with or endorsed by IHI.</footer>';
   box.innerHTML = h;
 }
 $("sum-copy").addEventListener("click", () => copyFormattedSummary($("sum-msg")));
@@ -2164,7 +2165,7 @@ $("copy-report").addEventListener("click", () => copyFormattedSummary($("copy-ms
 try { if (window.self === window.top) { const b = $("save-file"); b.hidden = false; b.addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" }), a = document.createElement("a");
   const name = (S.event.title || "review").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "review";
-  a.href = URL.createObjectURL(blob); a.download = name + ".ica-review.json"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  a.href = URL.createObjectURL(blob); a.download = name + ".seamline.json"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   $("copy-msg").textContent = "Review file downloaded. Open it here later with Open a saved review file.";
 }); } } catch (e) {}
 function report() {
@@ -2178,7 +2179,7 @@ function report() {
   L.push(""); L.push("FAILURE MODES (team ratings; RPN = occurrence x detection x severity)"); S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1)).forEach(f => L.push("- " + (refLabel(f.target) || "?") + " | " + f.mode + " | causes: " + (f.causes || "-") + " | effects: " + (f.effects || "-") + " | roles: " + (f.roles || []).map(roleName).join(", ") + " | O" + (f.occ || "-") + " D" + (f.det || "-") + " S" + (f.sev || "-") + " RPN " + (rpnOf(f) || "not rated") + " | actions: " + ((f.actions || []).map(id => { const a = S.actions.find(z => z.id === id); return a ? actionLabel(a) : null; }).filter(Boolean).join(", ") || "none")));
   L.push(""); L.push("DRIVER DIAGRAM"); L.push("Aim: " + (S.aim.text || "-")); S.drivers.filter(d => d.level === "primary").forEach(p => { L.push("- Primary: " + p.text); S.drivers.filter(d => (d.parents || []).includes(p.id)).forEach(d => L.push("    - Secondary: " + d.text + " | change ideas: " + (S.actions.filter(a => (a.drivers || []).includes(d.id)).map(actionLabel).join(", ") || "none"))); });
   L.push(""); L.push("MEASURES"); S.measures.forEach(m => { const v = m.points.map(p => p[1]); L.push("- " + m.name + (m.goal != null ? " | Goal: " + m.goal : "") + " | Improvement: " + (m.direction === "up" ? "higher" : m.direction === "down" ? "lower" : "not recorded") + " | " + v.length + " data points" + (v.length ? ", latest " + v[v.length - 1] : "") + (v.length >= 10 ? ", median " + median(v) : "")); S.actions.filter(a => a.measureId === m.id).forEach(a => L.push("    tested by " + actionLabel(a) + (a.start ? " from " + a.start : "") + ": " + a.text)); });
-  L.push(""); L.push("Prepared with the ICA Safety Review prototype. Fictional or de-identified data only.");
+  L.push(""); L.push("Prepared with the Seamline prototype. Fictional or de-identified data only.");
   return L.join("\n");
 }
 function load(text) {

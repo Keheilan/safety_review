@@ -458,3 +458,13 @@ def test_page_contacts_no_other_host_and_fonts_load(base_url):
         loaded = pg.evaluate("[...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/\"/g, ''))")
         assert {"Atkinson Hyperlegible", "IBM Plex Mono", "Newsreader"} <= set(loaded)
         b.close()
+
+
+def test_named_seamline(page):
+    assert page.title() == "Event · Seamline"
+    assert page.inner_text("header.top h1") == "Seamline Process Intelligence & Safety Improvement"
+    text = report_text(page)
+    assert text.startswith("SEAMLINE · SAFETY IMPROVEMENT REVIEW") or "Seamline · Safety improvement review" in text
+    assert "Prepared with Seamline" in text and "ICA Safety Review" not in page.content()
+    go(page, "save")
+    assert "Trace the conditions behind continuity." in page.inner_text("#s-save")

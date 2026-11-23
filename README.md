@@ -1,6 +1,8 @@
-# ICA Safety Review
+# Seamline
 
-A guided review of a patient-safety event that runs entirely in the browser.
+**Process Intelligence & Safety Improvement.** Trace the conditions behind continuity.
+
+Seamline is a guided review of a patient-safety event that runs entirely in the browser.
 
 It builds role swimlanes from a timeline, shows handoffs and the steps that waited on others, surfaces hidden assumptions and responsibilities that no role believed were theirs, and supports cause and effect analysis, causal statements, failure modes and effects analysis (FMEA) on the same steps and handoffs, a driver diagram, an action plan grouped by strength, and run charts that mark when each action's test started. Every action can be traced back to the findings it came from and forward to its measured result.
 
