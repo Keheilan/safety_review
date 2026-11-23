@@ -67,7 +67,7 @@ p { margin: 0; }
 .lede { color: var(--muted); max-width: 68ch; }
 .eyebrow { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
-.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; align-items: start; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px; align-items: start; }
 .cols > * { min-width: 0; }
 label { display: grid; gap: 4px; font-size: 0.88rem; font-weight: 700; }
 label .hint { font-weight: 400; color: var(--muted); }
@@ -82,7 +82,7 @@ button.quiet { background: transparent; color: var(--muted); border-color: var(-
 button.danger { background: transparent; color: var(--gap); border-color: var(--gap); }
 button.small { font-size: 0.82rem; padding: 3px 9px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--line); background: var(--sunk); white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--line); background: var(--sunk); white-space: normal; max-width: 100%; }
 .chip.assume { background: var(--assume-soft); border-color: var(--assume); color: var(--assume); }
 .chip.gap { background: var(--gap-soft); border-color: var(--gap); color: var(--gap); }
 .chip.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
@@ -94,9 +94,11 @@ ul.plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .item.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .item-head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
 .item-head .what { font-weight: 700; }
+.role-name { background: transparent; border-color: transparent; padding: 4px 6px; }
+.role-name:hover { border-color: var(--line); }
 .belief { font-size: 0.9rem; border-left: 3px solid var(--assume); padding-left: 8px; }
 .belief.checked { border-left-color: var(--ok); }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; }
 .tally { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface); display: grid; gap: 2px; }
 .tally .n { font-family: var(--f-mono); font-size: 1.6rem; line-height: 1.1; }
 .tally.assume .n { color: var(--assume); } .tally.gap .n { color: var(--gap); } .tally.accent .n { color: var(--accent); }
@@ -125,7 +127,7 @@ table.duty td:first-child { min-width: 180px; }
 /* fishbone */
 .effect { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--r); padding: 12px 14px; }
 .effect b { color: var(--accent); }
-.bones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.bones { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
 .bone { border-top: 3px solid var(--accent); background: var(--surface); border-radius: 0 0 var(--r) var(--r); border-left: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 10px 12px; display: grid; gap: 6px; align-content: start; }
 .bone h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .bone li { font-size: 0.9rem; display: flex; justify-content: space-between; gap: 8px; }
@@ -136,7 +138,7 @@ table.duty td:first-child { min-width: 180px; }
 .statement { font-family: var(--f-head); font-size: 1.05rem; }
 
 /* actions */
-.strength { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.strength { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
 .tier { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface); display: grid; gap: 6px; align-content: start; }
 .tier h3 { display: flex; justify-content: space-between; }
 .tier.stronger { border-top: 4px solid var(--ok); } .tier.intermediate { border-top: 4px solid var(--accent); } .tier.weaker { border-top: 4px solid var(--assume); }
@@ -193,7 +195,7 @@ a { color: var(--accent); }
     </div>
     <div class="panel">
       <h3>Roles involved</h3>
-      <p class="muted" style="font-size:.9rem">Each role becomes a swimlane. Use roles such as "Night nurse" or "On-call resident", never names.</p>
+      <p class="muted" style="font-size:.9rem">Each role becomes a swimlane. Use roles such as "Night nurse" or "On-call resident", never names. Steps are added in stage 2 and drawn in each role's lane in stage 3. Open a role to see, edit or add its steps. Click a role's name to rename it.</p>
       <ul class="plain" id="role-list"></ul>
       <div class="row">
         <label for="role-new">Add a role<input id="role-new" placeholder="e.g. Respiratory therapist"></label>
@@ -207,7 +209,7 @@ a { color: var(--accent); }
 <!-- 2 TIMELINE -->
 <section class="stage" id="s-timeline" data-stage="timeline" hidden>
   <div><p class="eyebrow">Stage 2</p><h2>Build the timeline, one step at a time</h2></div>
-  <p class="lede">For each step, answer the questions as the person in that role would have seen it at the time. The question about what they believed is the one that surfaces hidden assumptions.</p>
+  <p class="lede">For each step, answer the questions as the person in that role would have seen it at the time. The question about what they believed is the one that surfaces hidden assumptions. Every step appears in its role's lane in stage 3, with its handoffs and dependencies drawn as arrows.</p>
   <div class="cols">
     <form class="panel" id="step-form" autocomplete="off">
       <h3 id="step-form-title">Add a step</h3>
@@ -303,7 +305,7 @@ a { color: var(--accent); }
 <!-- 6 ACTIONS -->
 <section class="stage" id="s-actions" data-stage="actions" hidden>
   <div><p class="eyebrow">Stage 6</p><h2>Actions</h2></div>
-  <p class="lede">Each causal statement should lead to at least one action. Actions that change the system, such as forcing functions or simpler processes, tend to hold up better than actions that rely on people remembering, such as training or a new policy.</p>
+  <p class="lede">Each causal statement should lead to at least one action. Actions that change the system, such as forcing functions or simpler processes, tend to hold up better than actions that rely on people remembering, such as training or a new policy. Give each action a measure and the point when its test starts; stage 7 then shows whether it made a difference.</p>
   <div class="strength" id="tiers"></div>
   <div class="cols">
     <form class="panel" id="act-form" autocomplete="off">
@@ -315,7 +317,11 @@ a { color: var(--accent); }
         <label for="act-owner">Responsible role<input id="act-owner" placeholder="e.g. Nurse manager"></label>
         <label for="act-due" style="flex:0 1 170px">Target date<input id="act-due" type="date"></label>
       </div>
-      <label for="act-measure">How you will know it worked<input id="act-measure" placeholder="e.g. % critical results acknowledged within 30 minutes"></label>
+      <div class="row">
+        <label for="act-measure">Measure that will show whether it worked<select id="act-measure"></select></label>
+        <label for="act-start" style="flex:0 1 170px">Test starts at <span class="hint">a data point, e.g. Wk 7</span><input id="act-start" placeholder="Wk 7"></label>
+      </div>
+      <label for="act-measure-new" id="act-measure-new-wrap" hidden>Name of the new measure<input id="act-measure-new" placeholder="e.g. % critical results acknowledged within 30 minutes"></label>
       <div class="row"><button type="submit">Add action</button></div>
     </form>
     <div class="panel"><h3>Action plan</h3><ul class="plain" id="act-list"></ul></div>
@@ -324,19 +330,31 @@ a { color: var(--accent); }
 
 <!-- 7 MEASURE -->
 <section class="stage" id="s-measure" data-stage="measure" hidden>
-  <div><p class="eyebrow">Stage 7</p><h2>Measure: run chart</h2></div>
-  <p class="lede">Track one measure over time, in the order the data were collected. With 10 or more points the chart draws the median. Mark when each test of change started, and any outside event that may have affected the process, so the effect of changes is easy to see.</p>
+  <div><p class="eyebrow">Stage 7</p><h2>Did the actions work?</h2></div>
+  <p class="lede">Each action from stage 6 is a test of change. Choose a measure to see its run chart. The point where each linked action's test started is marked on the chart, so you can see whether the change made a difference. With 10 or more points the chart draws the median.</p>
   <div class="panel">
-    <label for="run-name">Measure<input id="run-name"></label>
+    <div class="row">
+      <label for="run-select">Measure<select id="run-select"></select></label>
+      <button type="button" class="ghost" id="run-add">Add a measure</button>
+    </div>
+    <div>
+      <p class="eyebrow" style="margin-bottom:6px">Actions tested on this measure</p>
+      <div id="run-links" class="chips"></div>
+    </div>
     <div class="chart-frame" id="run-chart"></div>
     <div id="run-signals" class="chips"></div>
     <p class="muted" style="font-size:.85rem">Shift and trend signals use common run chart rules: six or more points in a row on one side of the median is a shift; five or more points in a row going the same direction is a trend. These rules are not part of the IHI run chart instructions this tool follows, and are signals to discuss, not proof.</p>
   </div>
-  <div class="panel">
-    <label class="row" style="align-items:center;gap:8px;font-weight:400" for="run-pct"><input id="run-pct" type="checkbox" style="width:auto"> This measure is a percentage (keep the scale within 0 to 100)</label>
-    <label for="run-data">Data points, one per line as "label, value"<textarea id="run-data" rows="8" class="mono"></textarea></label>
-    <label for="run-notes">Tests of change and outside events, one per line as "label, note" <span class="hint">the label must match a data point</span><textarea id="run-notes" rows="3" class="mono"></textarea></label>
-    <div class="row"><button type="button" id="run-apply">Update chart</button></div>
+  <div class="panel" id="run-edit">
+    <h3>Edit this measure</h3>
+    <label for="run-name">Measure name<input id="run-name"></label>
+    <div class="row">
+      <label for="run-goal" style="flex:0 1 180px">Goal <span class="hint">optional</span><input id="run-goal" type="number" step="any"></label>
+      <label class="row" style="align-items:center;gap:8px;font-weight:400;flex:1 1 260px" for="run-pct"><input id="run-pct" type="checkbox" style="width:auto"> This measure is a percentage (keep the scale within 0 to 100)</label>
+    </div>
+    <label for="run-data">Data points in time order, one per line as "label, value"<textarea id="run-data" rows="8" class="mono"></textarea></label>
+    <label for="run-notes">Outside events that may have affected the process, one per line as "label, note" <span class="hint">tests of change come from the actions in stage 6</span><textarea id="run-notes" rows="3" class="mono"></textarea></label>
+    <div class="row"><button type="button" id="run-apply">Update chart</button><button type="button" class="danger" id="run-del">Delete this measure</button></div>
   </div>
 </section>
 
@@ -423,16 +441,16 @@ const SAMPLE = {
     { id: "x2", cause: "the handover template has no field for pending results or held medications", effect: "the night nurse was not told about the lactate or the held antibiotic", event: "delayed treatment of sepsis" }
   ],
   actions: [
-    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measure: "% critical results acknowledged by the responsible nurse within 30 minutes" },
-    { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measure: "% handovers that include pending results (audit of 10 per week)" },
-    { id: "a3", stmt: "x1", type: "weaker:Training", text: "Remind staff of the critical result policy at the safety huddle", owner: "Charge nurses", due: "", measure: "" }
+    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measureId: "m1", start: "Wk 7" },
+    { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measureId: "m2", start: "Wk 9" },
+    { id: "a3", stmt: "x1", type: "weaker:Training", text: "Remind staff of the critical result policy at the safety huddle", owner: "Charge nurses", due: "", measureId: "m1", start: "Wk 3" }
   ],
-  run: {
-    name: "% critical results acknowledged by the responsible nurse within 30 minutes (example data)",
-    percent: true,
-    notes: [["Wk 7","PDSA 1: results sent to nurse's phone"],["Wk 9","PDSA 2: new handover template"]],
-    points: [["Wk 1",52],["Wk 2",48],["Wk 3",55],["Wk 4",50],["Wk 5",47],["Wk 6",53],["Wk 7",61],["Wk 8",68],["Wk 9",72],["Wk 10",75],["Wk 11",79],["Wk 12",81]]
-  }
+  measures: [
+    { id: "m1", name: "% critical results acknowledged by the responsible nurse within 30 minutes (example data)", percent: true, goal: 90, events: [],
+      points: [["Wk 1",52],["Wk 2",48],["Wk 3",55],["Wk 4",50],["Wk 5",47],["Wk 6",53],["Wk 7",61],["Wk 8",68],["Wk 9",72],["Wk 10",75],["Wk 11",79],["Wk 12",81]] },
+    { id: "m2", name: "% handovers that include pending results, audit of 10 per week (example data)", percent: true, goal: 95, events: [["Wk 8","Two weeks of short staffing on the unit"]],
+      points: [["Wk 1",20],["Wk 2",30],["Wk 3",20],["Wk 4",30],["Wk 5",30],["Wk 6",20],["Wk 7",30],["Wk 8",10],["Wk 9",60],["Wk 10",80],["Wk 11",80],["Wk 12",90]] }
+  ]
 };
 
 // Action types grouped by strength. Paraphrased from the action hierarchy used in RCA².
@@ -446,6 +464,8 @@ let S = clone(SAMPLE);
 let selected = null;
 let editing = null;
 let whyParent = null;
+let selectedMeasure = null;
+const openRoles = new Set();
 
 // ---------- helpers ----------
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -500,14 +520,39 @@ function renderEvent() {
 });
 function renderRoles() {
   const ul = $("role-list"); ul.innerHTML = "";
+  if (!S.roles.length) { ul.innerHTML = '<li class="muted">No roles yet. Add the first role below.</li>'; return; }
   S.roles.forEach(r => {
-    const n = S.steps.filter(s => s.role === r.id).length;
-    const li = el('<li class="item"><div class="item-head"><span class="what"></span><span class="row" style="gap:6px"><span class="muted" style="font-size:.85rem"></span><button type="button" class="quiet small">Remove</button></span></div></li>');
-    li.querySelector(".what").textContent = r.name;
-    li.querySelector(".muted").textContent = n + (n === 1 ? " step" : " steps");
-    const b = li.querySelector("button");
-    if (n) { b.disabled = true; b.title = "Remove or move this role's steps first"; b.style.opacity = .5; }
-    b.addEventListener("click", () => { S.roles = S.roles.filter(x => x.id !== r.id); S.duties.forEach(d => delete d.claims[r.id]); renderAll(); });
+    const mine = sortedSteps().filter(s => s.role === r.id), n = mine.length, open = openRoles.has(r.id);
+    const li = el('<li class="item"><div class="item-head" style="flex-wrap:nowrap"><input class="role-name" style="font-weight:700;flex:1 1 auto"><span class="row" style="gap:6px;flex-wrap:nowrap"><button type="button" class="ghost small" data-a="toggle"></button><button type="button" class="quiet small" data-a="del">Remove</button></span></div><div data-steps></div></li>');
+    const input = li.querySelector(".role-name");
+    input.value = r.name; input.setAttribute("aria-label", "Role name");
+    input.addEventListener("change", () => { const v = input.value.trim(); if (v) { r.name = v; renderAll(); } else input.value = r.name; });
+    const tog = li.querySelector('[data-a="toggle"]');
+    tog.textContent = (n + (n === 1 ? " step" : " steps")) + (open ? " ▴" : " ▾");
+    tog.setAttribute("aria-expanded", open ? "true" : "false");
+    tog.addEventListener("click", () => { open ? openRoles.delete(r.id) : openRoles.add(r.id); renderRoles(); });
+    const del = li.querySelector('[data-a="del"]');
+    if (n) { del.disabled = true; del.title = "Remove or move this role's steps first"; del.style.opacity = .5; }
+    del.addEventListener("click", () => { S.roles = S.roles.filter(x => x.id !== r.id); S.duties.forEach(d => delete d.claims[r.id]); renderAll(); });
+    if (open) {
+      const box = li.querySelector("[data-steps]");
+      const list = el('<ul class="plain" style="gap:6px;margin-top:4px"></ul>');
+      if (!n) list.appendChild(el('<li class="muted" style="font-size:.9rem">No steps for this role yet.</li>'));
+      mine.forEach(st => {
+        const row = el('<li class="row" style="justify-content:space-between;flex-wrap:nowrap;gap:8px;font-size:.9rem"><span style="min-width:0"><span class="mono muted"></span> <span data-w></span></span><button type="button" class="quiet small">Edit</button></li>');
+        row.querySelector(".mono").textContent = stepNo(st.id) + ". " + fmtTime(st.t);
+        row.querySelector("[data-w]").textContent = st.what;
+        row.querySelector("button").addEventListener("click", () => startEdit(st.id));
+        list.appendChild(row);
+      });
+      box.appendChild(list);
+      const acts = el('<div class="row" style="margin-top:8px;gap:8px"><button type="button" class="ghost small" data-a="add">Add a step for this role</button><button type="button" class="quiet small" data-a="lane">See this lane</button></div>');
+      acts.querySelector('[data-a="add"]').addEventListener("click", () => { if (editing) stopEdit(); renderStepForm(); $("st-role").value = r.id; location.hash = "timeline"; $("st-time").focus(); });
+      const lane = acts.querySelector('[data-a="lane"]');
+      if (!n) lane.disabled = true;
+      lane.addEventListener("click", () => { selected = mine.length ? mine[0].id : null; location.hash = "lanes"; });
+      box.appendChild(acts);
+    }
     ul.appendChild(li);
   });
 }
@@ -523,7 +568,8 @@ function renderOverview() {
     ["gap", unacked().length, "handoffs not acknowledged", "#lanes"],
     ["gap", unclaimed().length, "unclaimed responsibilities", "#ownership"],
     ["accent", S.statements.length, "causal statements", "#causes"],
-    ["accent", S.actions.length, "actions planned", "#actions"]
+    ["accent", S.actions.length, "actions planned", "#actions"],
+    ["accent", S.actions.filter(a => measureOf(a)).length, "actions with a measure", "#measure"]
   ];
   $("overview").innerHTML = tiles.map(t => '<a class="tally ' + t[0] + '" href="' + t[3] + '" style="text-decoration:none;color:inherit"><span class="n">' + t[1] + '</span><span class="k">' + esc(t[2]) + "</span></a>").join("");
 }
@@ -803,6 +849,10 @@ function renderActions() {
     const n = S.actions.filter(a => tierOf(a.type) === k).length;
     return '<div class="tier ' + k + '"><h3><span>' + esc(HIERARCHY[k].label) + '</span><span class="mono">' + n + '</span></h3><p class="muted" style="font-size:.86rem">' + esc(HIERARCHY[k].note) + "</p><ul>" + HIERARCHY[k].types.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul></div>";
   }).join("");
+  const curM = $("act-measure").value;
+  $("act-measure").innerHTML = '<option value="">No measure yet</option>' + S.measures.map(m => '<option value="' + esc(m.id) + '">' + esc(m.name.slice(0, 80)) + "</option>").join("") + '<option value="__new__">New measure…</option>';
+  if (curM && (curM === "__new__" || S.measures.some(m => m.id === curM))) $("act-measure").value = curM;
+  $("act-measure-new-wrap").hidden = $("act-measure").value !== "__new__";
   const ul = $("act-list"); ul.innerHTML = "";
   if (!S.actions.length) { ul.innerHTML = '<li class="muted">No actions yet.</li>'; }
   const strong = S.actions.some(a => tierOf(a.type) !== "weaker");
@@ -810,28 +860,80 @@ function renderActions() {
   S.actions.forEach(a => {
     const k = tierOf(a.type), t = (a.type || "").split(":")[1] || "";
     const sIdx = S.statements.findIndex(st => st.id === a.stmt);
-    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><button type="button" class="quiet small">Delete</button></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p></li>');
+    const li = el('<li class="item"><div class="item-head"><span class="chips"></span><button type="button" class="quiet small" data-a="del">Delete</button></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p><div class="chips" data-m></div></li>');
     li.querySelector(".chips").innerHTML = '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc((HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + " · " + t) + "</span>" + (sIdx >= 0 ? '<span class="chip">Statement ' + (sIdx + 1) + "</span>" : '<span class="chip gap">Not linked to a statement</span>');
-    li.querySelector(".what").textContent = a.text;
-    li.querySelector(".muted").textContent = [a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due, a.measure && "Measure: " + a.measure].filter(Boolean).join(" · ") || "No owner or measure yet";
-    li.querySelector("button").addEventListener("click", () => { S.actions = S.actions.filter(z => z.id !== a.id); renderAll(); });
+    li.querySelector(".what").textContent = actionLabel(a) + ". " + a.text;
+    li.querySelector(".muted").textContent = [a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due].filter(Boolean).join(" · ") || "No responsible role yet";
+    const m = measureOf(a), mbox = li.querySelector("[data-m]");
+    if (!m) mbox.innerHTML = '<span class="chip gap">No measure yet: add one to see whether it worked</span>';
+    else {
+      const st = actionStartStatus(a, m);
+      mbox.innerHTML = '<span class="chip">Measure: ' + esc(m.name.length > 60 ? m.name.slice(0, 58) + "…" : m.name) + "</span>" + '<span class="chip ' + st.cls + '">' + esc(st.label) + "</span>";
+      const b = el('<button type="button" class="ghost small">View on run chart</button>');
+      b.addEventListener("click", () => { selectedMeasure = m.id; renderRunInputs(); location.hash = "measure"; });
+      mbox.appendChild(b);
+    }
+    li.querySelector('[data-a="del"]').addEventListener("click", () => { S.actions = S.actions.filter(z => z.id !== a.id); renderAll(); });
     ul.appendChild(li);
   });
 }
 $("act-form").addEventListener("submit", e => {
   e.preventDefault(); const t = $("act-text").value.trim(); if (!t) return;
-  S.actions.push({ id: uid("a"), stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measure: $("act-measure").value.trim() });
+  let mid = $("act-measure").value;
+  if (mid === "__new__") {
+    const name = $("act-measure-new").value.trim();
+    if (!name) { $("act-measure-new").focus(); return; }
+    mid = uid("m"); S.measures.push({ id: mid, name, percent: /%|percent/i.test(name), goal: null, events: [], points: [] });
+  }
+  S.actions.push({ id: uid("a"), stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measureId: mid, start: $("act-start").value.trim() });
   $("act-form").reset(); renderAll();
 });
+$("act-measure").addEventListener("change", () => { $("act-measure-new-wrap").hidden = $("act-measure").value !== "__new__"; if (!$("act-measure-new-wrap").hidden) $("act-measure-new").focus(); });
+function actionLabel(a) { return "Action " + (S.actions.indexOf(a) + 1); }
+function measureOf(a) { return a && a.measureId ? S.measures.find(m => m.id === a.measureId) || null : null; }
+function actionStartStatus(a, m) {
+  if (!m.points.length) return { cls: "assume", label: "Measure has no data yet" };
+  if (!a.start) return { cls: "assume", label: "Test start not set" };
+  const i = m.points.findIndex(p => p[0] === a.start);
+  if (i < 0) return { cls: "assume", label: "Starts at " + a.start + ", which is not a data point yet" };
+  const after = m.points.length - i - 1;
+  return { cls: "ok", label: "Test started " + a.start + " · " + after + (after === 1 ? " point" : " points") + " since" };
+}
 
 // ---------- stage 7: run chart ----------
-function renderRunInputs() { $("run-name").value = S.run.name; $("run-pct").checked = !!S.run.percent; $("run-data").value = S.run.points.map(p => p[0] + ", " + p[1]).join("\n"); $("run-notes").value = (S.run.notes || []).map(n => n[0] + ", " + n[1]).join("\n"); }
-$("run-name").addEventListener("input", e => { S.run.name = e.target.value; });
+function currentMeasure() {
+  if (!S.measures.some(m => m.id === selectedMeasure)) selectedMeasure = S.measures.length ? S.measures[0].id : null;
+  return S.measures.find(m => m.id === selectedMeasure) || null;
+}
+function renderRunInputs() {
+  const m = currentMeasure();
+  $("run-select").innerHTML = S.measures.length ? S.measures.map(x => '<option value="' + esc(x.id) + '">' + esc(x.name.slice(0, 90)) + "</option>").join("") : '<option value="">No measures yet</option>';
+  $("run-select").disabled = !S.measures.length;
+  $("run-edit").hidden = !m;
+  if (!m) return;
+  $("run-select").value = m.id;
+  $("run-name").value = m.name; $("run-goal").value = m.goal == null ? "" : m.goal; $("run-pct").checked = !!m.percent;
+  $("run-data").value = m.points.map(p => p[0] + ", " + p[1]).join("\n");
+  $("run-notes").value = (m.events || []).map(n => n[0] + ", " + n[1]).join("\n");
+}
+$("run-select").addEventListener("change", e => { selectedMeasure = e.target.value; renderRunInputs(); renderRun(); });
+$("run-add").addEventListener("click", () => {
+  const id = uid("m"); S.measures.push({ id, name: "New measure", percent: false, goal: null, events: [], points: [] });
+  selectedMeasure = id; renderRunInputs(); renderRun(); renderActions(); $("run-name").focus(); $("run-name").select();
+});
+$("run-name").addEventListener("input", e => { const m = currentMeasure(); if (m) m.name = e.target.value; });
 $("run-apply").addEventListener("click", () => {
-  const pts = $("run-data").value.split("\n").map(l => l.split(",")).filter(p => p.length >= 2 && p[1].trim() !== "" && !isNaN(Number(p[1]))).map(p => [p[0].trim(), Number(p[1])]);
-  S.run.points = pts;
-  S.run.notes = $("run-notes").value.split("\n").map(l => { const i = l.indexOf(","); return i < 0 ? null : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }).filter(n => n && n[0] && n[1]);
-  S.run.percent = $("run-pct").checked; renderRun();
+  const m = currentMeasure(); if (!m) return;
+  m.points = $("run-data").value.split("\n").map(l => l.split(",")).filter(p => p.length >= 2 && p[1].trim() !== "" && !isNaN(Number(p[1]))).map(p => [p[0].trim(), Number(p[1])]);
+  m.events = $("run-notes").value.split("\n").map(l => { const i = l.indexOf(","); return i < 0 ? null : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }).filter(n => n && n[0] && n[1]);
+  m.percent = $("run-pct").checked;
+  const g = $("run-goal").value.trim(); m.goal = g === "" || isNaN(Number(g)) ? null : Number(g);
+  renderRunInputs(); renderRun(); renderActions(); renderOverview();
+});
+twoStep($("run-del"), "Click again to delete the measure", () => {
+  const m = currentMeasure(); if (!m) return;
+  S.measures = S.measures.filter(x => x.id !== m.id); S.actions.forEach(a => { if (a.measureId === m.id) a.measureId = ""; });
+  selectedMeasure = null; renderAll();
 });
 function median(a) { const s = a.slice().sort((x, y) => x - y), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 function runSignals(vals, med) {
@@ -853,27 +955,36 @@ function runSignals(vals, med) {
   return sig;
 }
 function renderRun() {
-  const box = $("run-chart"), pts = S.run.points;
-  if (pts.length < 2) { box.innerHTML = '<p class="muted">Enter at least two data points.</p>'; $("run-signals").innerHTML = ""; return; }
+  const box = $("run-chart"), m = currentMeasure();
+  const links = $("run-links");
+  if (!m) { box.innerHTML = '<p class="muted">No measures yet. Give an action a measure in stage 6, or add one here.</p>'; $("run-signals").innerHTML = ""; links.innerHTML = ""; return; }
+  const linked = S.actions.filter(a => a.measureId === m.id);
+  links.innerHTML = linked.length ? linked.map(a => { const k = tierOf(a.type), st = actionStartStatus(a, m); return '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc(actionLabel(a) + " · " + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + a.text.slice(0, 60) + (a.text.length > 60 ? "…" : "")) + "</span>" + (st.cls !== "ok" ? '<span class="chip assume">' + esc(actionLabel(a) + ": " + st.label) + "</span>" : ""); }).join("") : '<span class="chip gap">No action is linked to this measure. Link one in stage 6.</span>';
+  const pts = m.points;
+  if (pts.length < 2) { box.innerHTML = '<p class="muted">Enter at least two data points below.</p>'; $("run-signals").innerHTML = ""; return; }
   const vals = pts.map(p => p[1]), showMed = pts.length >= 10, med = median(vals);
-  const notes = (S.run.notes || []).map(n => [pts.findIndex(p => p[0] === n[0]), n[1]]).filter(n => n[0] >= 0);
-  const W = Math.max(560, 60 + pts.length * 52), H = 300, L = 48, R = 16, T = notes.length ? 36 : 16, B = 40;
+  const tierColor = k => k === "stronger" ? cssVar("--ok") : k === "intermediate" ? cssVar("--accent") : cssVar("--assume");
+  const notes = linked.map(a => [pts.findIndex(p => p[0] === a.start), actionLabel(a) + ": " + a.text, tierColor(tierOf(a.type))])
+    .concat((m.events || []).map(n => [pts.findIndex(p => p[0] === n[0]), n[1], cssVar("--muted")])).filter(n => n[0] >= 0);
+  const W = Math.max(560, 60 + pts.length * 52), H = 300, L = 48, R = 16, T = notes.length ? 16 + 12 * Math.min(notes.length, 3) + 8 : 16, B = 40;
   // IHI: scale from about 20% below the smallest value to about 20% above the largest, unless logical limits apply.
   let lo = Math.min.apply(null, vals) * 0.8, hi = Math.max.apply(null, vals) * 1.2;
+  if (m.goal != null) { lo = Math.min(lo, m.goal * 0.95); hi = Math.max(hi, m.goal * 1.05); }
   if (Math.min.apply(null, vals) < 0) lo = Math.min.apply(null, vals) * 1.2;
-  if (S.run.percent) { lo = Math.max(0, lo); hi = Math.min(100, hi); }
+  if (m.percent) { lo = Math.max(0, lo); hi = Math.min(100, hi); }
   if (hi - lo < 1e-9) { hi = lo + 1; }
   const step = Math.pow(10, Math.floor(Math.log10((hi - lo) / 5))); lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
-  if (S.run.percent) { lo = Math.max(0, lo); hi = Math.min(100, hi); }
+  if (m.percent) { lo = Math.max(0, lo); hi = Math.min(100, hi); }
   const x = i => L + (pts.length === 1 ? 0 : i * (W - L - R) / (pts.length - 1)), y = v => T + (hi - v) * (H - T - B) / (hi - lo);
   const C = { accent: cssVar("--accent"), line: cssVar("--line"), muted: cssVar("--muted"), ok: cssVar("--ok"), surface: cssVar("--surface"), assume: cssVar("--assume") };
   const sig = showMed ? runSignals(vals, med) : [], flagged = new Set();
   sig.forEach(s => { for (let i = s.from; i <= s.to; i++) flagged.add(i); });
-  let svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Run chart of ' + esc(S.run.name) + '">';
+  let svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Run chart of ' + esc(m.name) + '">';
   let tstep = step; while ((hi - lo) / tstep > 8) tstep *= 2;
   for (let v = Math.ceil(lo / tstep) * tstep; v <= hi + 1e-9; v += tstep) { svg += '<line x1="' + L + '" y1="' + y(v) + '" x2="' + (W - R) + '" y2="' + y(v) + '" stroke="' + C.line + '" stroke-width="1"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + Math.round(v * 10) / 10 + "</text>"; }
   if (showMed) svg += '<line x1="' + L + '" y1="' + y(med) + '" x2="' + (W - R) + '" y2="' + y(med) + '" stroke="' + C.muted + '" stroke-width="1.5" stroke-dasharray="6 4"/><text x="' + (W - R) + '" y="' + (y(med) - 6) + '" text-anchor="end">median ' + Math.round(med * 10) / 10 + "</text>";
-  notes.forEach((n, k) => { svg += '<line x1="' + x(n[0]) + '" y1="' + (T - 4) + '" x2="' + x(n[0]) + '" y2="' + (H - B) + '" stroke="' + C.assume + '" stroke-width="1.2" stroke-dasharray="3 3"/><text x="' + Math.min(x(n[0]) + 4, W - R - 4) + '" y="' + (12 + (k % 2) * 12) + '" text-anchor="' + (x(n[0]) > W - 160 ? "end" : "start") + '" style="fill:' + C.assume + '">' + esc(n[1].length > 42 ? n[1].slice(0, 41) + "…" : n[1]) + "<title>" + esc(n[1]) + "</title></text>"; });
+  if (m.goal != null) svg += '<line x1="' + L + '" y1="' + y(m.goal) + '" x2="' + (W - R) + '" y2="' + y(m.goal) + '" stroke="' + C.ok + '" stroke-width="1.5" stroke-dasharray="10 4"/><text x="' + (L + 6) + '" y="' + (y(m.goal) - 6) + '" style="fill:' + C.ok + '">goal ' + Math.round(m.goal * 10) / 10 + "</text>";
+  notes.forEach((n, k) => { svg += '<line x1="' + x(n[0]) + '" y1="' + (12 + (k % 3) * 12 + 4) + '" x2="' + x(n[0]) + '" y2="' + (H - B) + '" stroke="' + n[2] + '" stroke-width="1.4" stroke-dasharray="3 3"/><text x="' + (x(n[0]) > W - 200 ? x(n[0]) - 4 : x(n[0]) + 4) + '" y="' + (12 + (k % 3) * 12) + '" text-anchor="' + (x(n[0]) > W - 200 ? "end" : "start") + '" style="fill:' + n[2] + '">' + esc(n[1].length > 44 ? n[1].slice(0, 43) + "…" : n[1]) + "<title>" + esc(n[1]) + "</title></text>"; });
   svg += '<polyline fill="none" stroke="' + C.accent + '" stroke-width="2" points="' + pts.map((p, i) => x(i) + "," + y(p[1])).join(" ") + '"/>';
   pts.forEach((p, i) => {
     svg += '<circle cx="' + x(i) + '" cy="' + y(p[1]) + '" r="' + (flagged.has(i) ? 5.5 : 4) + '" fill="' + (flagged.has(i) ? C.ok : C.accent) + '" stroke="' + C.surface + '" stroke-width="1.5"><title>' + esc(p[0] + ": " + p[1]) + "</title></circle>";
@@ -900,7 +1011,8 @@ function report() {
   L.push(""); L.push("SHARED RESPONSIBILITIES"); S.duties.forEach(d => L.push("- " + d.name + ": " + dutyStatus(d).label));
   L.push(""); L.push("CONTRIBUTING FACTORS"); S.categories.forEach(c => { const l = S.causes.filter(z => z.cat === c); if (l.length) { L.push(c + ":"); l.forEach(z => L.push("  - " + z.text)); } });
   L.push(""); L.push("CAUSAL STATEMENTS"); S.statements.forEach((st, i) => L.push((i + 1) + ". Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + "."));
-  L.push(""); L.push("ACTIONS"); S.actions.forEach(a => { const k = tierOf(a.type); L.push("- [" + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + (a.type.split(":")[1] || "") + "] " + a.text + (a.owner ? " | Responsible: " + a.owner : "") + (a.measure ? " | Measure: " + a.measure : "")); });
+  L.push(""); L.push("ACTIONS"); S.actions.forEach(a => { const k = tierOf(a.type); L.push("- [" + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + (a.type.split(":")[1] || "") + "] " + a.text + (a.owner ? " | Responsible: " + a.owner : "") + (measureOf(a) ? " | Measure: " + measureOf(a).name + (a.start ? " (test starts " + a.start + ")" : "") : " | No measure")); });
+  L.push(""); L.push("MEASURES"); S.measures.forEach(m => { const v = m.points.map(p => p[1]); L.push("- " + m.name + (m.goal != null ? " | Goal: " + m.goal : "") + " | " + v.length + " data points" + (v.length ? ", latest " + v[v.length - 1] : "") + (v.length >= 10 ? ", median " + median(v) : "")); S.actions.filter(a => a.measureId === m.id).forEach(a => L.push("    tested by " + actionLabel(a) + (a.start ? " from " + a.start : "") + ": " + a.text)); });
   L.push(""); L.push("Prepared with the ICA Safety Review prototype. Fictional or de-identified data only.");
   return L.join("\n");
 }
@@ -908,9 +1020,13 @@ function load(text) {
   try {
     const o = JSON.parse(text);
     if (!o || !Array.isArray(o.roles) || !Array.isArray(o.steps) || !o.event) throw new Error("not a review");
-    const base = clone(SAMPLE); Object.keys(base).forEach(k => { if (o[k] === undefined) o[k] = k === "run" ? { name: "", points: [] } : Array.isArray(base[k]) ? [] : base[k]; });
-    if (o.run && !o.run.notes) o.run.notes = [];
-    S = o; selected = null; editing = null; renderAll(); $("load-msg").textContent = "Review loaded."; return true;
+    if (!o.measures) {
+      o.measures = o.run && Array.isArray(o.run.points) ? [{ id: "m1", name: o.run.name || "Measure", percent: !!o.run.percent, goal: null, events: o.run.notes || [], points: o.run.points }] : [];
+      (o.actions || []).forEach(a => { if (!a.measureId && a.measure && o.measures[0] && a.measure.trim() && o.measures[0].name.indexOf(a.measure.trim()) === 0) a.measureId = "m1"; });
+      delete o.run;
+    }
+    const base = clone(SAMPLE); Object.keys(base).forEach(k => { if (o[k] === undefined) o[k] = Array.isArray(base[k]) ? [] : base[k]; });
+    S = o; selected = null; editing = null; selectedMeasure = null; renderAll(); $("load-msg").textContent = "Review loaded."; return true;
   } catch (e) { $("load-msg").textContent = "That is not review data from this tool. Copy it again with Copy review data and paste the whole text."; return false; }
 }
 $("load-btn").addEventListener("click", () => { if (load($("load-paste").value)) $("load-paste").value = ""; });
@@ -922,9 +1038,9 @@ function twoStep(btn, label, fn) {
     clearTimeout(timer); armed = false; btn.textContent = btn.dataset.orig; fn();
   });
 }
-twoStep($("reset-sample"), "Click again to replace this review", () => { S = clone(SAMPLE); selected = null; renderAll(); $("load-msg").textContent = "Example case loaded."; });
+twoStep($("reset-sample"), "Click again to replace this review", () => { S = clone(SAMPLE); selected = null; selectedMeasure = null; renderAll(); $("load-msg").textContent = "Example case loaded."; });
 twoStep($("reset-blank"), "Click again to clear everything", () => {
-  S = { version: 1, event: { title: "", setting: "", summary: "", outcome: "" }, roles: [], steps: [], duties: [], categories: SAMPLE.categories.slice(), causes: [], statements: [], actions: [], run: { name: "", percent: false, notes: [], points: [] } };
+  S = { version: 1, event: { title: "", setting: "", summary: "", outcome: "" }, roles: [], steps: [], duties: [], categories: SAMPLE.categories.slice(), causes: [], statements: [], actions: [], measures: [] };
   selected = null; renderAll(); $("load-msg").textContent = "Blank review started."; location.hash = "event";
 });
 
