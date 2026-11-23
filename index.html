@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Guided patient-safety event review with role swimlanes, hidden assumptions, cause and effect, FMEA, driver diagram, actions and run chart. For fictional or de-identified cases only.">
+<meta name="description" content="Guided patient-safety event review with role swimlanes, hidden assumptions, cause and effect, FMEA, driver diagram, actions, run charts and a summary report. For fictional or de-identified cases only.">
 <title>ICA Safety Review</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -159,6 +159,33 @@ fieldset.picks legend { font-size: .88rem; font-weight: 700; padding: 0 4px; }
 .chart-frame { overflow-x: auto; }
 .chart-frame text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
 
+/* summary report */
+.report { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 4vw, 40px); display: grid; gap: 22px; max-width: 860px; }
+.report h1 { font-family: var(--f-head); font-size: clamp(1.5rem, 3vw, 2rem); margin: 0; }
+.report .sub { color: var(--muted); }
+.report h2 { font-family: var(--f-body); font-size: 1.1rem; font-weight: 700; margin: 0 0 8px; }
+.report p { max-width: 70ch; }
+.report section { display: grid; gap: 10px; }
+.report table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+.report th { text-align: left; font-weight: 700; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); }
+.report td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.report td.num, .report th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.report .note { font-size: .85rem; color: var(--muted); }
+.report .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 12px; }
+.report .tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.report .tile .k { font-size: .82rem; color: var(--muted); }
+.report .tile .v { font-family: var(--f-mono); font-size: 1.7rem; line-height: 1.15; }
+.report .tile.goal .v { color: var(--ok); }
+.report ul, .report ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.report .flag { color: var(--gap); font-weight: 700; }
+.report .yes { color: var(--ok); font-weight: 700; } .report .no { color: var(--gap); font-weight: 700; }
+@media print {
+  :root { --bg: #fff; --surface: #fff; --ink: #111; --muted: #444; --line: #bbb; --ok: #1d6b35; --gap: #a3261b; --accent: #155e66; color-scheme: light; }
+  body::before, header.top, .notice, footer, section.stage:not(#s-summary), #s-summary > .row, #sum-msg { display: none !important; }
+  #s-summary { display: block !important; }
+  main { padding: 0; }
+  .report { border: 0; padding: 0; max-width: none; }
+}
 footer { border-top: 1px solid var(--line); padding-block: 20px 40px; color: var(--muted); font-size: 0.85rem; }
 footer p + p { margin-top: 6px; }
 a { color: var(--accent); }
@@ -184,6 +211,7 @@ a { color: var(--accent); }
       <a href="#drivers"><span>7</span>Driver diagram</a>
       <a href="#actions"><span>8</span>Actions</a>
       <a href="#measure"><span>9</span>Measure</a>
+      <a href="#summary"><span>10</span>Summary</a>
       <a href="#save"><span>·</span>Save and about</a>
     </nav>
   </div>
@@ -426,6 +454,16 @@ a { color: var(--accent); }
   </div>
 </section>
 
+<!-- 10 SUMMARY -->
+<section class="stage" id="s-summary" data-stage="summary" hidden>
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <p class="eyebrow">Stage 10 · Summary</p>
+    <div class="row" style="gap:8px"><button type="button" class="ghost small" id="sum-copy">Copy summary</button><button type="button" class="ghost small" id="sum-print" hidden>Print or save as PDF</button></div>
+  </div>
+  <p id="sum-msg" class="muted" aria-live="polite" style="font-size:.85rem"></p>
+  <article class="report" id="report"></article>
+</section>
+
 <!-- SAVE / ABOUT -->
 <section class="stage" id="s-save" data-stage="save" hidden>
   <div><h2>Save, load and about</h2></div>
@@ -575,7 +613,7 @@ function dutyStatus(d) {
 function unclaimed() { return S.duties.filter(d => dutyStatus(d).k === "unclaimed"); }
 
 // ---------- routing ----------
-const STAGES = ["event", "timeline", "lanes", "ownership", "causes", "risks", "drivers", "actions", "measure", "save"];
+const STAGES = ["event", "timeline", "lanes", "ownership", "causes", "risks", "drivers", "actions", "measure", "summary", "save"];
 function route() {
   let h = (location.hash || "").replace("#", "");
   if (!STAGES.includes(h)) h = "event";
@@ -584,6 +622,7 @@ function route() {
   if (h === "lanes") renderLanes();
   if (h === "measure") renderRun();
   if (h === "drivers") renderDriverChart();
+  if (h === "summary") renderSummary();
 }
 window.addEventListener("hashchange", route);
 let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("s-lanes").hidden) renderLanes(); }, 150); });
@@ -591,7 +630,7 @@ let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTi
 // ---------- render all ----------
 function renderAll() {
   renderEvent(); renderRoles(); renderOverview(); renderStepForm(); renderSteps(); renderLanes(); renderDuties();
-  renderCauses(); renderStatements(); renderFailures(); renderDrivers(); renderActions(); renderRunInputs(); renderRun();
+  renderCauses(); renderStatements(); renderFailures(); renderDrivers(); renderActions(); renderRunInputs(); renderRun(); renderSummary();
   $("case-chip").innerHTML = '<span class="chip accent">' + esc(S.event.title ? (S.event.title.length > 48 ? S.event.title.slice(0, 46) + "…" : S.event.title) : "Untitled review") + "</span>";
 }
 
@@ -1107,17 +1146,23 @@ function renderDriverChart() {
   svg += "</svg>";
   box.innerHTML = svg;
 }
+function actionResult(a) {
+  const m = measureOf(a);
+  if (!m) return "No measure yet";
+  if (!m.points.length) return "Measure has no data yet";
+  const i = a.start ? m.points.findIndex(p => p[0] === a.start) : -1;
+  if (i < 1) return m.points.length + (m.points.length === 1 ? " data point" : " data points") + "; set a test start that matches a data point to compare before and after";
+  const later = S.actions.filter(b => b !== a && b.measureId === m.id).map(b => ({ b, j: m.points.findIndex(p => p[0] === b.start) })).filter(x => x.j > i).sort((x, y) => x.j - y.j)[0];
+  const end = later ? later.j : m.points.length;
+  const before = median(m.points.slice(0, i).map(p => p[1])), during = median(m.points.slice(i, end).map(p => p[1]));
+  return "Median " + fmtVal(m, before) + " before the test, " + fmtVal(m, during) + " from " + a.start + (later ? " until " + actionLabel(later.b) + " began at " + later.b.start : " on") + (m.goal != null ? "; goal " + fmtVal(m, m.goal) : "");
+}
 function traceHtml(a) {
   const ds = (a.drivers || []).map(id => S.drivers.find(d => d.id === id)).filter(Boolean);
   const prims = [...new Set(ds.flatMap(d => d.parents || []))].map(id => S.drivers.find(d => d.id === id)).filter(Boolean);
   const fms = S.failures.filter(f => (f.actions || []).includes(a.id));
   const srcs = [...new Set(ds.concat(prims).flatMap(d => d.sources || []).concat(fms.map(f => "failure:" + f.id)).concat(a.stmt ? ["statement:" + a.stmt] : []))].map(refLabel).filter(Boolean);
-  const m = measureOf(a); let result = "No measure yet";
-  if (m && m.points.length) {
-    const i = a.start ? m.points.findIndex(p => p[0] === a.start) : -1;
-    if (i > 0 && i < m.points.length) { const before = m.points.slice(0, i).map(p => p[1]), after = m.points.slice(i).map(p => p[1]); result = "Median before the test " + median(before) + ", from the test on " + median(after) + " (" + after.length + (after.length === 1 ? " point" : " points") + ")" + (m.goal != null ? "; goal " + m.goal : ""); }
-    else result = m.points.length + " data points; set the test start to compare before and after";
-  }
+  const result = actionResult(a);
   return '<div><b>Traced back to:</b> ' + (srcs.length ? srcs.map(t => esc(t)).join(" · ") : '<span class="muted">no findings linked yet</span>') + "</div>" +
     "<div><b>Meant to move:</b> " + (ds.length ? ds.map(d => esc(d.text)).join(" · ") : '<span class="muted">no driver linked yet</span>') + "</div>" +
     "<div><b>Result so far:</b> " + esc(result) + "</div>";
@@ -1282,6 +1327,113 @@ function renderRun() {
   $("run-signals").innerHTML = sig.length ? sig.map(s => '<span class="chip ok">' + (s.k === "shift" ? "Shift" : "Trend") + ": " + esc(pts[s.from][0]) + " to " + esc(pts[s.to][0]) + (s.dir > 0 ? (s.k === "shift" ? ", above the median" : ", going up") : (s.k === "shift" ? ", below the median" : ", going down")) + "</span>").join("") : '<span class="chip">No shift or trend yet</span>';
 }
 
+// ---------- stage 10: summary (built only from the team's entries) ----------
+function fmtVal(m, v) { return v == null ? "–" : (Math.round(v * 10) / 10) + (m && m.percent ? "%" : ""); }
+function measureSummary(m) {
+  const pts = m.points, n = pts.length;
+  if (n < 2) return null;
+  const starts = S.actions.filter(a => a.measureId === m.id).map(a => ({ a, i: pts.findIndex(p => p[0] === a.start) })).filter(x => x.i >= 0).sort((x, y) => x.i - y.i);
+  let bEnd = starts.length && starts[0].i >= 5 ? starts[0].i : Math.min(6, Math.floor(n / 2));
+  if (bEnd < 1) bEnd = 1;
+  const rStart = Math.max(bEnd, n - 6);
+  const base = pts.slice(0, bEnd), recent = pts.slice(rStart);
+  const vals = pts.map(p => p[1]), last = pts[n - 1];
+  const reached = m.goal != null && vals.some(v => (m.goal >= vals[0] ? v >= m.goal : v <= m.goal));
+  const sig = n >= 10 ? runSignals(vals, median(vals)) : [];
+  return { base, recent, baseMed: median(base.map(p => p[1])), recentMed: median(recent.map(p => p[1])), last, reached, sig, starts };
+}
+function renderSummary() {
+  const box = $("report"); if (!box) return;
+  const steps = sortedSteps();
+  const noRecv = steps.filter(s => s.to && !S.steps.some(z => z.wait === s.id && z.role === s.to));
+  const unack = unacked(), unchk = unchecked(), uncl = unclaimed();
+  const fms = S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1));
+  const liveActs = id => S.actions.find(a => a.id === id);
+  const fmNoAction = fms.filter(f => !(f.actions || []).some(liveActs));
+  const aimM = S.measures.find(m => m.id === S.aim.measureId) || null;
+  const lc = t => t ? t.charAt(0).toLowerCase() + t.slice(1) : t;
+  const list = arr => arr.length <= 1 ? arr.join("") : arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+  let h = "";
+  h += '<header><p class="eyebrow">ICA Safety Improvement Review</p><h1>' + esc(S.event.title || "Untitled review") + '</h1><p class="sub">' + esc(S.event.setting || "") + (S.event.setting ? " · " : "") + "Prepared " + esc(new Date().toISOString().slice(0, 10)) + " · Fictional or de-identified data only</p></header>";
+
+  // Executive summary
+  h += "<section><h2>Executive summary</h2>";
+  if (S.event.summary) h += "<p>" + esc(S.event.summary) + "</p>";
+  if (S.event.outcome) h += "<p><b>Outcome for the patient:</b> " + esc(S.event.outcome) + "</p>";
+  h += "<p>The team's review records " + plural(steps.length, "step", "steps") + " across " + plural(S.roles.length, "role", "roles") + (S.roles.length ? " (" + esc(list(S.roles.map(r => r.name))) + ")" : "") + ". It records " +
+    plural(unack.length, "handoff that was not acknowledged", "handoffs that were not acknowledged") + ", " + plural(noRecv.length, "handoff with no step recorded as receiving it", "handoffs with no step recorded as receiving them") + ", " +
+    plural(unchk.length, "unchecked assumption", "unchecked assumptions") + ", and " + plural(uncl.length, "shared responsibility that no role believed was theirs", "shared responsibilities that no role believed were theirs") + ".</p></section>";
+
+  // Where work did not connect
+  if (noRecv.length || uncl.length) {
+    h += "<section><h2>Where the work did not connect</h2>";
+    if (noRecv.length) h += "<p><b>Handoffs with no recorded receipt</b></p><ul>" + noRecv.map(s => "<li>" + esc(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + ": " + s.what) + (s.ack === "yes" ? " <span class=\"note\">(acknowledged, but no follow-up step recorded)</span>" : "") + "</li>").join("") + "</ul>";
+    if (uncl.length) h += "<p><b>Responsibilities no role believed were theirs</b></p><ul>" + uncl.map(d => "<li>" + esc(d.name) + "</li>").join("") + "</ul>";
+    h += "</section>";
+  }
+
+  // Causal statements
+  if (S.statements.length) h += "<section><h2>Causal statements</h2><ol>" + S.statements.map(st => "<li>Because " + esc(st.cause) + ", " + esc(st.effect) + ", which increased the likelihood of " + esc(st.event) + ".</li>").join("") + "</ol></section>";
+
+  // FMEA
+  if (fms.length) {
+    h += '<section><h2>Prospective failure-mode analysis</h2><div class="scroll-x"><table><thead><tr><th>Failure mode</th><th>Where</th><th class="num">RPN</th><th>Action linked</th></tr></thead><tbody>' +
+      fms.map(f => { const acts = (f.actions || []).map(liveActs).filter(Boolean); return "<tr><td>" + esc(f.mode) + "</td><td>" + esc((refLabel(f.target) || "").replace(/:.*$/, "")) + '</td><td class="num">' + (rpnOf(f) || "–") + "</td><td>" + (acts.length ? '<span class="yes">Yes</span> · ' + esc(acts.map(actionLabel).join(", ")) : '<span class="no">No</span>') + "</td></tr>"; }).join("") +
+      '</tbody></table></div><p class="note">RPN = occurrence × detection × severity, from the team\'s own 1–10 ratings' + (fms.some(f => !rpnOf(f)) ? "; – means not yet rated" : "") + ". Rankings are not clinical safety determinations.</p></section>";
+  }
+
+  // Aim and measure
+  if (S.aim.text || aimM) {
+    h += "<section><h2>Improvement aim</h2>" + (S.aim.text ? "<p>" + esc(S.aim.text) + "</p>" : "");
+    const ms = aimM ? measureSummary(aimM) : null;
+    if (aimM && ms) {
+      h += '<p class="note">Measure: ' + esc(aimM.name) + "</p>";
+      h += '<div class="tiles"><div class="tile"><span class="k">Baseline median · ' + esc(ms.base[0][0] + "–" + ms.base[ms.base.length - 1][0]) + '</span><span class="v">' + fmtVal(aimM, ms.baseMed) + '</span></div>' +
+        '<div class="tile"><span class="k">Recent median · ' + esc(ms.recent[0][0] + "–" + ms.recent[ms.recent.length - 1][0]) + '</span><span class="v">' + fmtVal(aimM, ms.recentMed) + "</span></div>" +
+        (aimM.goal != null ? '<div class="tile goal"><span class="k">Goal</span><span class="v">' + fmtVal(aimM, aimM.goal) + "</span></div>" : "") + "</div>";
+      const shift = ms.sig.find(x => x.k === "shift" && x.to === aimM.points.length - 1);
+      h += "<p>Latest value " + fmtVal(aimM, ms.last[1]) + " (" + esc(ms.last[0]) + ")." + (aimM.goal != null ? (ms.reached ? " The goal has been reached in at least one period." : " The goal has not yet been reached in any period.") : "") +
+        (shift ? " The run chart shows a shift: " + plural(shift.to - shift.from + 1, "point", "points") + " in a row " + (shift.dir > 0 ? "above" : "below") + " the median, from " + esc(aimM.points[shift.from][0]) + "." : "") + "</p>";
+      if (ms.starts.length) h += '<p class="note">Tests of change on this measure: ' + esc(ms.starts.map(x => actionLabel(x.a) + " from " + x.a.start + " (" + (HIERARCHY[tierOf(x.a.type)] ? HIERARCHY[tierOf(x.a.type)].label.replace(" actions", "").toLowerCase() : "") + ")").join("; ")) + ".</p>";
+    } else if (aimM) h += '<p class="note">The aim\'s measure has fewer than two data points.</p>';
+    h += "</section>";
+  }
+
+  // Actions and results
+  if (S.actions.length) {
+    h += '<section><h2>Actions and results so far</h2><div class="scroll-x"><table><thead><tr><th>Action</th><th>Strength</th><th>Result so far</th></tr></thead><tbody>' +
+      S.actions.map(a => { const k = tierOf(a.type), r = actionResult(a);
+        return "<tr><td>" + esc(actionLabel(a) + ". " + a.text) + "</td><td>" + esc(HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + "</td><td>" + esc(r) + "</td></tr>"; }).join("") + "</tbody></table></div></section>";
+  }
+
+  // Items requiring investigation
+  const items = [];
+  if (fmNoAction.length) items.push(plural(fmNoAction.length, "of the " + fms.length + " documented failure modes has", "of the " + fms.length + " documented failure modes have").replace(/^(\d+) of/, "$1 of") + " no linked action: " + list(fmNoAction.map(f => f.mode.charAt(0).toLowerCase() + f.mode.slice(1))) + ".");
+  if (noRecv.length) items.push(plural(noRecv.length, "handoff has", "handoffs have") + " no step recorded as receiving " + (noRecv.length === 1 ? "it" : "them") + ". Confirm with the roles involved what happened at each.");
+  if (uncl.length) items.push(plural(uncl.length, "shared responsibility has", "shared responsibilities have") + " no role that believed it was theirs. Agree who owns " + (uncl.length === 1 ? "it" : "each") + ".");
+  const statementsWeakOnly = S.statements.filter(st => { const acts = S.actions.filter(a => a.stmt === st.id); return acts.length && acts.every(a => tierOf(a.type) === "weaker"); });
+  if (statementsWeakOnly.length) items.push(plural(statementsWeakOnly.length, "causal statement is", "causal statements are") + " addressed only by weaker actions that depend on people remembering.");
+  const noMeasure = S.actions.filter(a => !measureOf(a));
+  if (noMeasure.length) items.push(plural(noMeasure.length, "action has", "actions have") + " no measure, so " + (noMeasure.length === 1 ? "its" : "their") + " effect cannot be seen.");
+  if (S.actions.length) items.push("The proposed changes may create new dependencies or failure modes of their own. Assess them prospectively, for example with an FMEA, before spreading them.");
+  if (S.measures.length) items.push("The measures show whether the process changed. They do not by themselves establish that patient outcomes, such as treatment delays, improved.");
+  if (items.length) h += "<section><h2>Items requiring investigation</h2><ul>" + items.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul></section>";
+
+  h += '<footer class="note" style="border:0;padding:0">Prepared with ICA Safety Review from the team\'s own entries. The tool does not decide root causes, rate performance or determine fault. Methods follow IHI quality improvement tools and RCA²; not affiliated with or endorsed by IHI.</footer>';
+  box.innerHTML = h;
+}
+$("sum-copy").addEventListener("click", () => {
+  const box = $("report"), html = box.innerHTML, text = box.innerText;
+  const ok = () => { $("sum-msg").textContent = "Summary copied with its formatting. Paste it into a document or email."; };
+  const plain = () => navigator.clipboard.writeText(text).then(() => { $("sum-msg").textContent = "Summary copied as plain text."; }, () => copyText(text, "Summary copied."));
+  try {
+    if (window.ClipboardItem && navigator.clipboard.write) navigator.clipboard.write([new ClipboardItem({ "text/html": new Blob([html], { type: "text/html" }), "text/plain": new Blob([text], { type: "text/plain" }) })]).then(ok, plain);
+    else plain();
+  } catch (e) { plain(); }
+});
+try { if (window.self === window.top) { $("sum-print").hidden = false; $("sum-print").addEventListener("click", () => window.print()); } } catch (e) {}
+
 // ---------- save / load ----------
 function copyText(text, msg) {
   const done = () => { $("copy-msg").textContent = msg; $("copy-fallback").hidden = true; };
@@ -1289,7 +1441,7 @@ function copyText(text, msg) {
   try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
 }
 $("copy-json").addEventListener("click", () => copyText(JSON.stringify(S, null, 2), "Review data copied. Paste it into a file you keep, and load it here later."));
-$("copy-report").addEventListener("click", () => copyText(report(), "Summary report copied."));
+$("copy-report").addEventListener("click", () => { renderSummary(); copyText($("report").innerText, "Summary copied. For the formatted version, open the Summary page."); });
 function report() {
   const L = [];
   L.push("EVENT REVIEW: " + (S.event.title || "Untitled")); L.push("Setting: " + S.event.setting); L.push(""); L.push("What happened:"); L.push(S.event.summary); L.push("Outcome: " + S.event.outcome); L.push("");
