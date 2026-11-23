@@ -29,7 +29,7 @@ Acceptance tests run the page in a real browser with Playwright:
 
 For fictional or de-identified cases only. Nothing is sent or stored by the page. A review leaves the browser only when the user copies it out.
 
-The page loads nothing from other sites: its fonts are served from this repository (`fonts/`), and there are no analytics, trackers or external scripts. An automated test checks that every request the page makes goes to its own site. The site is hosted on GitHub Pages, which, like any web host, receives the visitor's IP address when the page is requested.
+The page loads nothing from other sites: its fonts are served from this repository (`fonts/`), and there are no analytics, trackers or external scripts. An automated test checks that every request the page makes goes to its own site. The page also carries a Content Security Policy (in `index.html`) that tells the browser to refuse any attempt to send data elsewhere: no network requests, beacons, form submissions or frames, and no script except the page's own, which is pinned by its SHA-256 hash. The site is hosted on GitHub Pages, which, like any web host, receives the visitor's IP address when the page is requested.
 
 The page uses one typeface, Atkinson Hyperlegible, designed by the Braille Institute for legibility. It is licensed under the SIL Open Font License 1.1; the license text is in `fonts/`.
 
