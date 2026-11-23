@@ -309,6 +309,10 @@ a { color: var(--accent); }
         <label for="st-transfer">What was handed over? <span class="hint">information or responsibility</span><input id="st-transfer"></label>
         <label for="st-ackev">Evidence of acknowledgment <span class="hint">optional</span><input id="st-ackev" placeholder="e.g. call log, signed handover sheet"></label>
       </div>
+      <div class="row">
+        <label for="st-recv">Did it reach the receiving role? <span class="hint">kept apart from acknowledgment</span><select id="st-recv"><option value="">No separate record (use acknowledgment and linked steps)</option><option value="yes">Yes: receipt is recorded</option><option value="no">No: documented as not received</option></select></label>
+        <label for="st-recvev">Evidence of receipt <span class="hint">optional</span><input id="st-recvev" placeholder="e.g. read receipt, interview"></label>
+      </div>
       <label for="st-wait">Did this step receive a handoff, or wait on an earlier step? <span class="hint">pick that step; it links the two in the swimlanes</span><select id="st-wait"></select></label>
       <label for="st-belief">What did they believe was true at that moment? <span class="hint">e.g. "The resident had already seen the result"</span><textarea id="st-belief" rows="2"></textarea></label>
       <label for="st-checked">Was that belief checked?<select id="st-checked"><option value="no">No, it was assumed</option><option value="unknown">Not known</option><option value="yes">Yes, it was verified</option></select></label>
@@ -403,7 +407,7 @@ a { color: var(--accent); }
   </div>
   <div class="bones" id="bones"></div>
   <div class="cols">
-    <div class="panel suggest"><h3>Suggested from the timeline</h3><p class="muted" style="font-size:.88rem">Unchecked assumptions, unacknowledged handoffs and unclaimed responsibilities. Add one only if the team agrees it contributed.</p><ul class="plain" id="suggest-list"></ul></div>
+    <div class="panel suggest"><h3>Suggested from the timeline</h3><p class="muted" style="font-size:.88rem">Unchecked assumptions, unacknowledged handoffs, and responsibilities that no role claimed or whose ownership is uncertain. Add one only if the team agrees it contributed.</p><ul class="plain" id="suggest-list"></ul></div>
     <form class="panel" id="cause-form" autocomplete="off">
       <h3 id="cause-form-title">Add a contributing factor</h3>
       <label for="cause-cat">Category<select id="cause-cat"></select></label>
@@ -433,13 +437,14 @@ a { color: var(--accent); }
   <div><p class="eyebrow">Stage 6</p><h2>Risks: failure modes and effects (FMEA)</h2></div>
   <p class="lede">Look ahead: where could this process fail next time? Each failure mode belongs to a step, a handoff or a shared responsibility already in this review, so the risks stay tied to the process as it actually works. The team rates each one; the tool only multiplies the team's ratings to rank them.</p>
   <div class="panel">
-    <div class="item-head"><h3>Failure modes, highest team-rated risk first</h3><span class="muted mono" id="fm-total"></span></div>
+    <div class="item-head"><h3>Failure modes, sorted by RPN; read severity on its own</h3><span class="muted mono" id="fm-total"></span></div>
     <div class="scroll-x"><table class="duty" id="fm-table"></table></div>
     <p class="muted" style="font-size:.85rem">Ratings run from 1 to 10 and are the team's judgement. Occurrence: 10 = very likely to happen. Detection: 10 = very unlikely to be noticed before harm. Severity: 10 = most severe harm. The risk priority number (RPN) is occurrence × detection × severity. It ranks the team's own ratings; it does not decide whether a risk is acceptable.</p>
   </div>
   <form class="panel" id="fm-form" autocomplete="off">
     <h3 id="fm-form-title">Add a failure mode</h3>
     <label for="fm-target">Where in the process <span class="hint">a step, a handoff, or a shared responsibility from this review</span><select id="fm-target" required></select></label>
+    <label for="fm-flow">Which workflow <span class="hint">the process as it ran, or as it would run after the proposed changes</span><select id="fm-flow"><option value="current">Current workflow</option><option value="proposed">Proposed workflow, after the changes</option></select></label>
     <label for="fm-mode">What could go wrong?<input id="fm-mode" required></label>
     <div class="row">
       <label for="fm-causes">Why would it happen?<textarea id="fm-causes" rows="2"></textarea></label>
@@ -498,7 +503,9 @@ a { color: var(--accent); }
       <h3 id="act-form-title">Add an action</h3>
       <label for="act-stmt">Addresses causal statement<select id="act-stmt"></select></label>
       <label for="act-type">Type of action<select id="act-type"></select></label>
+      <p class="hint" id="act-type-prompt" style="margin:-4px 0 4px"></p>
       <label for="act-text">Action <span class="hint">a change idea to test</span><textarea id="act-text" rows="2" required></textarea></label>
+      <label for="act-mech">How it works <span class="hint">what the change does to the work: blocks the unsafe step, makes it harder, or reminds people</span><input id="act-mech"></label>
       <fieldset class="picks"><legend>Secondary drivers it is meant to move <span class="hint">from the driver diagram; one or more</span></legend><div id="act-drivers" class="pick-list"></div></fieldset>
       <fieldset class="picks"><legend>Process conditions it is meant to change <span class="hint">every action should name at least one</span></legend><div id="act-conds" class="pick-list"></div></fieldset>
       <div class="row">
@@ -554,6 +561,7 @@ a { color: var(--accent); }
     <label for="run-name">Measure name<input id="run-name"></label>
     <div class="row">
       <label for="run-goal" style="flex:0 1 180px">Goal <span class="hint">optional</span><input id="run-goal" type="number" step="any"></label>
+      <label for="run-dir" style="flex:0 1 220px">Improvement means <span class="hint">needed to read the goal</span><select id="run-dir"><option value="">Not recorded</option><option value="up">A higher value</option><option value="down">A lower value</option></select></label>
       <label class="row" style="align-items:center;gap:8px;font-weight:400;flex:1 1 260px" for="run-pct"><input id="run-pct" type="checkbox" style="width:auto"> This measure is a percentage (keep the scale within 0 to 100)</label>
     </div>
     <div class="row">
@@ -681,7 +689,7 @@ const SAMPLE = {
     { id: "x2", conditionId: "k1", evidence: "Signed handover sheet with no pending items listed", uncertainty: "", cause: "the handover template has no field for pending results or held medications", effect: "the night nurse was not told about the lactate or the held antibiotic", event: "delayed treatment of sepsis" }
   ],
   actions: [
-    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", owner: "Laboratory director and nursing informatics", due: "", measureId: "m1", start: "Wk 7", drivers: ["q1", "q2"], conditions: ["k1"],
+    { id: "a1", stmt: "x1", type: "intermediate:Software enhancement", text: "Send critical results to the responsible nurse's phone and require an acknowledgement in the record", mechanism: "Routes the result to the responsible nurse and records the acknowledgment; it does not stop the result being dismissed unread", owner: "Laboratory director and nursing informatics", due: "", measureId: "m1", start: "Wk 7", drivers: ["q1", "q2"], conditions: ["k1"],
       detail: { baseline: "Receipt by the responsible nurse not established", expected: "The responsible nurse receives and acknowledges each critical result", capacity: "A phone assigned to every nurse at the start of each shift", newDeps: "Phone assignment and network coverage", unintended: "Alert fatigue; results missed if a phone is unassigned" },
       test: { proposedBy: "Laboratory director", authorizedBy: "Patient safety committee", limits: "One ward, 8 weeks", executed: "Results sent to the nurse's phone from week 7", changes: "Some phones unassigned at shift start in week 8", consequences: "Acknowledgment rose; occasional duplicate alerts", reviewedBy: "Ward quality team", decision: "pending" } },
     { id: "a2", stmt: "x2", type: "intermediate:Standardized communication tool", text: "Add pending results and held medications as required fields in the handover template", owner: "Ward nurse manager", due: "", measureId: "m2", start: "Wk 9", drivers: ["q3", "q2"], conditions: ["k1"] },
@@ -699,7 +707,8 @@ const SAMPLE = {
     { id: "f1", conditionId: "k1", safeguards: "Laboratory phones again if no action within an hour (not reliably done)", residual: "Whether nights differ from days", downstream: "Antibiotic timing; escalation", target: "handoff:s5", mode: "Critical result taken by someone not caring for the patient", causes: "Results are phoned to whoever answers the unit phone", effects: "Result not acted on; treatment delayed", roles: ["r4", "r2", "r1"], occ: 7, det: 6, sev: 8, actions: ["a1"] },
     { id: "f2", conditionId: "k1", safeguards: "None recorded", residual: "", downstream: "Night-shift escalation", target: "handoff:s7", mode: "Pending results not mentioned at handover", causes: "Handover template has no field for pending items", effects: "Incoming nurse unaware of an abnormal result", roles: ["r1", "r6"], occ: 6, det: 7, sev: 7, actions: ["a2"] },
     { id: "f3", conditionId: "k3", safeguards: "Pharmacist may phone the ward", residual: "", downstream: "First antibiotic dose", target: "step:s4", mode: "Order held without the prescriber being told", causes: "No defined route for allergy questions", effects: "First antibiotic dose delayed", roles: ["r5", "r3", "r1"], occ: 4, det: 6, sev: 7, actions: [] },
-    { id: "f4", conditionId: "k2", safeguards: "Any nurse may call the rapid response team", residual: "How often the score rises without escalation", downstream: "Rapid response demand", target: "duty:d3", mode: "Rising early warning score not escalated again", causes: "Unclear who escalates when the resident is in theatre", effects: "Deterioration recognized late", roles: ["r1", "r3", "r2"], occ: 5, det: 5, sev: 9, actions: [] }
+    { id: "f4", conditionId: "k2", safeguards: "Any nurse may call the rapid response team", residual: "How often the score rises without escalation", downstream: "Rapid response demand", target: "duty:d3", mode: "Rising early warning score not escalated again", causes: "Unclear who escalates when the resident is in theatre", effects: "Deterioration recognized late", roles: ["r1", "r3", "r2"], occ: 5, det: 5, sev: 9, actions: [] },
+    { id: "f5", workflow: "proposed", conditionId: "k1", safeguards: "Charge nurse assigns phones at shift start", residual: "How often phones are unassigned", downstream: "Night-shift escalation", target: "handoff:s5", mode: "Result sent to a phone no nurse is holding", causes: "Phones not assigned at the start of a shift", effects: "Critical result not seen; same delay as before the change", roles: ["r4", "r1"], occ: 3, det: 6, sev: 8, actions: [] }
   ],
   conditions: [
     { id: "k1", domain: "handoff", refs: ["handoff:s5", "handoff:s6", "step:s7", "handoff:s7"], required: "The nurse responsible for the patient receives the critical lactate result and can act on it",
@@ -716,10 +725,10 @@ const SAMPLE = {
       observed: "Rapid response call made at 21:40; team arrived within 10 minutes", status: "present", evStatus: "documented", evidence: "Rapid response log", at: "21:40–21:50", resolution: "resolved", resNote: "", interpretation: "", question: "" }
   ],
   measures: [
-    { id: "m1", name: "% critical results acknowledged by the responsible nurse within 30 minutes (example data)", percent: true, goal: 90, events: [],
+    { id: "m1", name: "% critical results acknowledged by the responsible nurse within 30 minutes (example data)", percent: true, goal: 90, direction: "up", events: [],
       type: "process", conditionId: "k1", numerator: "Critical results acknowledged by the responsible nurse within 30 minutes", denominator: "Critical results phoned to the ward", window: "Weekly", source: "Laboratory call log (example data)", limits: "Shows acknowledgment only, not whether appropriate treatment followed",
       points: [["Wk 1",52],["Wk 2",48],["Wk 3",55],["Wk 4",50],["Wk 5",47],["Wk 6",53],["Wk 7",61],["Wk 8",68],["Wk 9",72],["Wk 10",75],["Wk 11",79],["Wk 12",81]] },
-    { id: "m2", name: "% handovers that include pending results, audit of 10 per week (example data)", percent: true, goal: 95, events: [["Wk 8","Two weeks of short staffing on the unit"]],
+    { id: "m2", name: "% handovers that include pending results, audit of 10 per week (example data)", percent: true, goal: 95, direction: "up", events: [["Wk 8","Two weeks of short staffing on the unit"]],
       type: "process", conditionId: "k1", numerator: "Audited handovers that list every pending result", denominator: "10 audited handovers per week", window: "Weekly", source: "Charge nurse audit (example data)", limits: "Small sample; audited by the unit itself",
       points: [["Wk 1",20],["Wk 2",30],["Wk 3",20],["Wk 4",30],["Wk 5",30],["Wk 6",20],["Wk 7",30],["Wk 8",10],["Wk 9",60],["Wk 10",80],["Wk 11",80],["Wk 12",90]] }
   ]
@@ -736,9 +745,19 @@ const SAMPLE = {
 })();
 // Action types grouped by strength. Paraphrased from the action hierarchy used in RCA².
 const HIERARCHY = {
-  stronger: { label: "Stronger actions", note: "Change the system so the error is hard or impossible", types: ["Architectural or physical change", "Forcing function", "Simplify the process", "Standardize equipment or process", "Tangible involvement by leadership"] },
+  stronger: { label: "Stronger actions", note: "Change the system so the error is hard or impossible", types: ["Architectural or physical change", "New device with usability testing", "Forcing function", "Simplify the process", "Standardize equipment or process", "Tangible involvement by leadership"] },
   intermediate: { label: "Intermediate actions", note: "Make the right thing easier and the wrong thing visible", types: ["Redundancy", "Increase staffing or reduce workload", "Software enhancement", "Eliminate distractions", "Checklist or cognitive aid", "Remove look-alikes and sound-alikes", "Standardized communication tool", "Simulation-based training with refreshers", "Enhanced documentation or communication"] },
   weaker: { label: "Weaker actions", note: "Depend on people remembering and doing it right", types: ["Double check", "Warning or label", "New policy, procedure or memo", "Training"] }
+};
+// Prompts that ask the team to classify by what the change does to the work, not by the technology. They do not reclassify anything.
+const MECH_PROMPT = {
+  "Software enhancement": "Classify by what it does, not because it is software. An alert that can be dismissed works like a warning (weaker); one that stops the unsafe step works like a forcing function (stronger).",
+  "New device with usability testing": "This is a stronger action only if the device was tested with the people who will use it, in the setting where they work. Without that testing, describe what the device does instead.",
+  "Forcing function": "Say what physically or digitally prevents the unsafe step, and whether it can be overridden.",
+  "Checklist or cognitive aid": "Say what makes the checklist part of the work. One nobody has to complete works like a reminder.",
+  "Standardized communication tool": "Say what happens when the tool is not used: does the work stop, or carry on?",
+  "Redundancy": "Say whether the second check is independent of the first, or done by the same people with the same information.",
+  "Simplify the process": "Say which steps or handoffs are removed, not only which are made easier."
 };
 
 let S = clone(SAMPLE);
@@ -769,7 +788,22 @@ function unchecked() { return sortedSteps().filter(s => s.belief && s.belief.tri
 function unacked() { return sortedSteps().filter(s => s.to && s.ack !== "yes"); }
 function ackNo() { return sortedSteps().filter(s => s.to && s.ack === "no"); }
 function ackUnknown() { return sortedSteps().filter(s => s.to && s.ack !== "yes" && s.ack !== "no"); }
-function receiptNotEstablished() { return sortedSteps().filter(s => s.to && !S.steps.some(z => z.wait === s.id && z.role === s.to)); }
+// Receipt is kept apart from linkage. Receipt comes from a receipt record, an acknowledgment, or a linked
+// step in the receiving role. A handoff with none of these has receipt not established. A received handoff
+// with no linked later step is a gap in the timeline, not a receipt finding.
+function handoffSteps() { return sortedSteps().filter(s => s.to); }
+function linkedReceipt(s) { return S.steps.some(z => z.wait === s.id && z.role === s.to); }
+function receiptOf(s) {
+  if (s.recv === "no") return { k: "no", label: "documented as not received", cls: "gap" };
+  if (s.recv === "yes") return { k: "yes", label: "received (receipt recorded" + (s.recvEvidence ? ": " + s.recvEvidence : "") + ")", cls: "ok" };
+  if (s.ack === "yes") return { k: "acked", label: "received (shown by the acknowledgment)", cls: "ok" };
+  if (linkedReceipt(s)) return { k: "linked", label: "received (a step in the receiving role is linked to it)", cls: "ok" };
+  return { k: "unknown", label: "receipt not established", cls: "assume" };
+}
+function receiptFailed() { return handoffSteps().filter(s => receiptOf(s).k === "no"); }
+function receiptUnknown() { return handoffSteps().filter(s => receiptOf(s).k === "unknown"); }
+function noFollowUp() { return handoffSteps().filter(s => ["yes", "acked"].includes(receiptOf(s).k) && !linkedReceipt(s)); }
+function receiptConflicts() { return handoffSteps().filter(s => s.recv === "no" && (s.ack === "yes" || linkedReceipt(s))).map(s => ({ s, why: s.ack === "yes" ? "acknowledgment is recorded as confirmed" : "step " + stepNo(S.steps.find(z => z.wait === s.id && z.role === s.to).id) + " in the receiving role is linked to it" })); }
 function dutyStatus(d) {
   const claims = d.claims || {}, dims = d.dims || {};
   const answered = S.roles.filter(r => claims[r.id]);
@@ -793,7 +827,8 @@ function dutyMismatches(d) {
     else if (v.capacity === "yes" && (v.expected === "no" || v.expected === "unknown")) out.push({ r, k: "could act but was " + (v.expected === "no" ? "not expected to" : "not clearly expected to") }); });
   return out;
 }
-function unclaimed() { return S.duties.filter(d => ["disclaimed", "uncertain"].includes(dutyStatus(d).k)); }
+// Kept apart: every answering role said it was another's (disclaimed) vs no claim with at least one role unsure (uncertain).
+function dutiesWith(k) { return S.duties.filter(d => dutyStatus(d).k === k); }
 function condById(id) { return S.conditions.find(c => c.id === id) || null; }
 function condStatusLabel(c) { return (COND_STATUS[c.status] || ["Unknown", ""])[0]; }
 function condRefSteps(c) { return (c.refs || []).map(r => { const [k, id] = String(r).split(":"); return ["step", "handoff", "assumption"].includes(k) ? S.steps.find(z => z.id === id) : null; }).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a.t - b.t); }
@@ -884,9 +919,11 @@ function renderOverview() {
     ["assume", unchecked().length, "unchecked assumptions", "#lanes"],
     ["gap", ackNo().length, "handoffs documented as not acknowledged", "#lanes"],
     ["assume", ackUnknown().length, "handoffs with acknowledgment not established", "#lanes"],
-    ["assume", receiptNotEstablished().length, "handoffs with receipt not established", "#lanes"],
+    ["gap", receiptFailed().length, "handoffs documented as not received", "#lanes"],
+    ["assume", receiptUnknown().length, "handoffs with receipt not established", "#lanes"],
     ["trace", S.conditions.filter(c => ["absent", "changed", "not_established", "disputed"].includes(c.status)).length, "process conditions with a discrepancy", "#lanes"],
-    ["gap", unclaimed().length, "unclaimed responsibilities", "#ownership"],
+    ["gap", dutiesWith("disclaimed").length, "responsibilities every answering role disclaimed", "#ownership"],
+    ["assume", dutiesWith("uncertain").length, "responsibilities with ownership uncertain", "#ownership"],
     ["accent", S.statements.length, "causal statements", "#causes"],
     ["accent", S.actions.length, "actions planned", "#actions"],
     ["gap", S.failures.filter(f => !(f.actions || []).some(id => S.actions.some(a => a.id === id))).length, "failure modes with no action", "#risks"],
@@ -918,6 +955,7 @@ function renderSteps() {
     if (s.kind && s.kind !== "activity") chips += '<span class="chip accent">' + ({ decision: "Decision", start: "Start", end: "End" }[s.kind] || "") + "</span>";
     if (s.to) chips += '<span class="chip ' + (s.ack === "yes" ? "ok" : s.ack === "no" ? "gap" : "assume") + '">Handed to ' + esc(roleName(s.to)) + (s.transfer ? " (" + esc(s.transfer) + ")" : "") + (s.ack === "yes" ? ", acknowledged" : s.ack === "no" ? ", documented as not acknowledged" : ", acknowledgment not established") + "</span>";
     S.conditions.filter(c => (c.refs || []).some(r => r.endsWith(":" + s.id))).forEach(c => { chips += '<span class="chip trace">Condition: ' + esc(c.required.slice(0, 50)) + (c.required.length > 50 ? "…" : "") + " · " + esc(condStatusLabel(c).split(":")[0]) + "</span>"; });
+    if (s.to && ["no", "unknown"].includes(receiptOf(s).k)) chips += '<span class="chip ' + receiptOf(s).cls + '">Receipt: ' + esc(receiptOf(s).label) + "</span>";
     if (s.wait) chips += '<span class="chip">Waited on step ' + stepNo(s.wait) + "</span>";
     li.innerHTML = '<div class="item-head"><span><span class="mono muted">' + (i + 1) + ". " + esc(fmtTime(s.t)) + '</span> <b>' + esc(roleName(s.role)) + '</b></span><span class="row" style="gap:6px"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div>' +
       '<p class="what">' + esc(s.what) + "</p>" + (chips ? '<div class="chips">' + chips + "</div>" : "") +
@@ -937,7 +975,7 @@ function startEdit(id) {
   const m = s.t % 1440; $("st-time").value = String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
   $("st-kind").value = s.kind || "activity"; $("st-what").value = s.what; $("st-to").value = s.to || ""; $("st-ack").value = s.ack || "unknown";
   $("st-wait").value = s.wait || ""; $("st-belief").value = s.belief || ""; $("st-checked").value = s.checked || "no";
-  $("st-transfer").value = s.transfer || ""; $("st-ackev").value = s.ackEvidence || "";
+  $("st-transfer").value = s.transfer || ""; $("st-ackev").value = s.ackEvidence || ""; $("st-recv").value = s.recv || ""; $("st-recvev").value = s.recvEvidence || "";
   $("step-form-title").textContent = "Edit step " + stepNo(id); $("st-save").textContent = "Save changes"; $("st-cancel").hidden = false;
   if (location.hash !== "#timeline") location.hash = "timeline";
   $("st-what").focus();
@@ -951,7 +989,7 @@ $("step-form").addEventListener("submit", e => {
   e.preventDefault();
   const [hh, mm] = ($("st-time").value || "00:00").split(":").map(Number);
   const rec = { role: $("st-role").value, t: Number($("st-day").value) * 1440 + hh * 60 + mm, kind: $("st-kind").value, what: $("st-what").value.trim(), to: $("st-to").value,
-    ack: $("st-ack").value, wait: $("st-wait").value, belief: $("st-belief").value.trim(), checked: $("st-checked").value, transfer: $("st-transfer").value.trim(), ackEvidence: $("st-ackev").value.trim() };
+    ack: $("st-ack").value, wait: $("st-wait").value, belief: $("st-belief").value.trim(), checked: $("st-checked").value, transfer: $("st-transfer").value.trim(), ackEvidence: $("st-ackev").value.trim(), recv: $("st-recv").value, recvEvidence: $("st-recvev").value.trim() };
   if (!rec.role) { $("st-role").focus(); return; }
   if (!rec.what) { $("st-what").focus(); return; }
   if (rec.to === rec.role) rec.to = "";
@@ -1058,10 +1096,10 @@ function renderDetail() {
   if (from) h += '<span class="chip ' + (from.ack === "yes" ? "ok" : "gap") + '">Last handoff in: step ' + stepNo(from.id) + " from " + esc(roleName(from.role)) + "</span>";
   if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : "gap") + '">Handed to ' + esc(roleName(s.to)) + "</span>";
   down.forEach(d => { h += '<span class="chip accent">Step ' + stepNo(d.id) + " waited on this</span>"; });
-  if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : s.ack === "no" ? "gap" : "assume") + '">Acknowledgment: ' + (s.ack === "yes" ? "confirmed" : s.ack === "no" ? "documented as not given" : "not established") + (s.ackEvidence ? " · evidence: " + esc(s.ackEvidence) : "") + "</span>" + (s.transfer ? '<span class="chip">Handed over: ' + esc(s.transfer) + "</span>" : "") + (!S.steps.some(z => z.wait === s.id && z.role === s.to) ? '<span class="chip assume">Receipt not established</span>' : "");
+  if (s.to) h += '<span class="chip ' + (s.ack === "yes" ? "ok" : s.ack === "no" ? "gap" : "assume") + '">Acknowledgment: ' + (s.ack === "yes" ? "confirmed" : s.ack === "no" ? "documented as not given" : "not established") + (s.ackEvidence ? " · evidence: " + esc(s.ackEvidence) : "") + "</span>" + (s.transfer ? '<span class="chip">Handed over: ' + esc(s.transfer) + "</span>" : "") + '<span class="chip ' + receiptOf(s).cls + '">Receipt: ' + esc(receiptOf(s).label) + "</span>" + (!linkedReceipt(s) && receiptOf(s).k !== "unknown" ? '<span class="chip">No later step in the receiving role is linked</span>' : "");
   S.conditions.filter(c => (c.refs || []).some(r => r.endsWith(":" + s.id))).forEach(c => { h += '<span class="chip trace">Required: ' + esc(c.required) + " · " + esc(condStatusLabel(c)) + "</span>"; });
   const fms = S.failures.filter(f => f.target === "step:" + s.id || f.target === "handoff:" + s.id);
-  fms.forEach(f => { h += '<span class="chip gap">Failure mode: ' + esc(f.mode) + (rpnOf(f) ? " · RPN " + rpnOf(f) : "") + "</span>"; });
+  fms.forEach(f => { h += '<span class="chip gap">' + (f.workflow === "proposed" ? "Failure mode in the proposed workflow: " : "Failure mode: ") + esc(f.mode) + (f.sev ? " · severity " + f.sev : "") + (rpnOf(f) ? " · RPN " + rpnOf(f) : "") + "</span>"; });
   h += '</div><div class="row"><button type="button" class="ghost small" id="detail-edit">Edit this step</button><button type="button" class="quiet small" id="detail-cond">Add a condition for this step</button></div>';
   box.innerHTML = h;
   $("detail-edit").addEventListener("click", () => startEdit(s.id));
@@ -1072,8 +1110,11 @@ function renderSignals() {
   unchecked().forEach(s => items.push('<li class="item"><span class="chip assume">Unchecked assumption · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " believed: " + esc(s.belief) + "</p></li>"));
   ackNo().forEach(s => items.push('<li class="item"><span class="chip gap">Documented as not acknowledged · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
   ackUnknown().forEach(s => items.push('<li class="item"><span class="chip assume">Acknowledgment not established · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
-  receiptNotEstablished().forEach(s => items.push('<li class="item"><span class="chip assume">Receipt not established · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
-  unclaimed().forEach(d => items.push('<li class="item"><span class="chip gap">Unclaimed responsibility</span><p>' + esc(d.name) + "</p></li>"));
+  receiptFailed().forEach(s => items.push('<li class="item"><span class="chip gap">Documented as not received · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
+  receiptUnknown().forEach(s => items.push('<li class="item"><span class="chip assume">Receipt not established · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.transfer || s.what) + "</p></li>"));
+  receiptConflicts().forEach(x => items.push('<li class="item"><span class="chip assume">Records disagree · step ' + stepNo(x.s.id) + "</span><p>Documented as not received, but " + esc(x.why) + ".</p></li>"));
+  dutiesWith("disclaimed").forEach(d => items.push('<li class="item"><span class="chip gap">Every answering role disclaimed it</span><p>' + esc(d.name) + "</p></li>"));
+  dutiesWith("uncertain").forEach(d => items.push('<li class="item"><span class="chip assume">Ownership uncertain</span><p>' + esc(d.name) + "</p></li>"));
   ul.innerHTML = items.length ? items.join("") : '<li class="muted">No signals yet.</li>';
 }
 
@@ -1164,7 +1205,8 @@ function renderSuggestions() {
   const has = t => S.causes.some(c => c.text === t);
   unchecked().forEach(s => items.push({ cat: "Methods", text: roleName(s.role) + " assumed: " + s.belief }));
   unacked().forEach(s => items.push({ cat: "Methods", text: "Handoff from " + roleName(s.role) + " to " + roleName(s.to) + " not acknowledged (step " + stepNo(s.id) + ")" }));
-  unclaimed().forEach(d => items.push({ cat: "Methods", text: "No role believed it owned: " + d.name }));
+  dutiesWith("disclaimed").forEach(d => items.push({ cat: "Methods", text: "No role believed it owned: " + d.name }));
+  dutiesWith("uncertain").forEach(d => items.push({ cat: "Methods", text: "Ownership uncertain: " + d.name }));
   const fresh = items.filter(i => !has(i.text));
   ul.innerHTML = "";
   if (!fresh.length) { ul.innerHTML = '<li class="muted">Nothing new to suggest.</li>'; return; }
@@ -1200,11 +1242,11 @@ function lint(st) {
   if (/\b(human error|mistake|forgot|oversight|error by|staff error|nurse error|physician error)\b/.test(all)) out.push(["warn", "Rule 3: an error needs a preceding cause. Say what made the error likely."]);
   if (/(did not follow|didn't follow|not follow|violat|deviat|non-?complian|did not comply|bypass)/.test(all)) out.push(["warn", "Rule 4: a departure from procedure needs a preceding cause. Say why the procedure was not followed."]);
   if (/\b(did not|didn't|failed to|failure to|neglected to|no one|nobody)\b/.test(all)) out.push(["warn", "Rule 5: not acting is causal only where there was a duty to act. Name the duty and why it was not met."]);
-  if (!out.length && all.trim()) out.push(["pass", "No wording problems found by the five-rule check. The team still decides whether the statement is true."]);
+  if (!out.length && all.trim()) out.push(["pass", "No wording prompts. These prompts read words only; they cannot tell whether the statement meets the five rules or is true. The team decides that."]);
   return out;
 }
 function stmtFromForm() { return { cause: $("stmt-cause").value, effect: $("stmt-effect").value, event: $("stmt-event").value }; }
-function showLint() { $("stmt-lint").innerHTML = lint(stmtFromForm()).map(l => '<span class="' + l[0] + '">' + (l[0] === "warn" ? "Check: " : "") + esc(l[1]) + "</span>").join(""); }
+function showLint() { $("stmt-lint").innerHTML = lint(stmtFromForm()).map(l => '<span class="' + l[0] + '">' + (l[0] === "warn" ? "Prompt: " : "") + esc(l[1]) + "</span>").join(""); }
 ["stmt-cause", "stmt-effect", "stmt-event"].forEach(id => $(id).addEventListener("input", showLint));
 $("stmt-form").addEventListener("submit", e => {
   e.preventDefault(); const st = stmtFromForm(); if (!st.cause.trim() || !st.effect.trim() || !st.event.trim()) return;
@@ -1221,7 +1263,7 @@ function renderStatements() {
     const li = el('<li class="item"><div class="item-head"><span class="eyebrow"></span><button type="button" class="quiet small">Delete</button></div><p class="statement"></p><div class="chips"></div></li>');
     li.querySelector(".eyebrow").textContent = "Statement " + (i + 1);
     li.querySelector(".statement").textContent = "Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + ".";
-    li.querySelector(".chips").innerHTML = '<span class="chip ' + (n ? "ok" : "gap") + '">' + (n ? n + (n === 1 ? " action" : " actions") : "No action yet") + "</span>" + (warns.length ? '<span class="chip assume">' + warns.length + " wording " + (warns.length === 1 ? "check" : "checks") + "</span>" : "") +
+    li.querySelector(".chips").innerHTML = '<span class="chip ' + (n ? "ok" : "gap") + '">' + (n ? n + (n === 1 ? " action" : " actions") : "No action yet") + "</span>" + (warns.length ? '<span class="chip assume">' + warns.length + " wording " + (warns.length === 1 ? "prompt" : "prompts") + "</span>" : "") +
       (condById(st.conditionId) ? '<span class="chip trace">Condition: ' + esc(condById(st.conditionId).required.slice(0, 60)) + "</span>" : '<span class="chip">No condition linked</span>') +
       (st.evidence ? '<span class="chip ok">Evidence: ' + esc(st.evidence) + "</span>" : '<span class="chip gap">No evidence recorded</span>') +
       (st.uncertainty ? '<span class="chip">Uncertainty: ' + esc(st.uncertainty) + "</span>" : "");
@@ -1347,6 +1389,8 @@ function versionDiffHtml(v) {
     if (o.what !== z.what) ch.push("description"); if (o.t !== z.t) ch.push("time " + fmtTime(o.t) + " → " + fmtTime(z.t)); if (o.role !== z.role) ch.push("role");
     if ((o.to || "") !== (z.to || "")) ch.push("handoff recipient"); if ((o.wait || "") !== (z.wait || "")) ch.push("what it waited on"); if ((o.kind || "activity") !== (z.kind || "activity")) ch.push("step type");
     if (z.to && (o.ack || "unknown") !== (z.ack || "unknown")) ch.push("handoff " + ackLabel(o.ack) + " → " + ackLabel(z.ack));
+    const recvLabel = r => r === "yes" ? "receipt recorded" : r === "no" ? "documented as not received" : "no separate receipt record";
+    if (z.to && (o.recv || "") !== (z.recv || "")) ch.push(recvLabel(o.recv) + " → " + recvLabel(z.recv));
     if (ch.length) out.push(["Step " + stepNo(z.id) + " changed", ch.join("; ")]); });
   const oldConds = new Map((old.conditions || []).map(c => [c.id, c]));
   S.conditions.forEach(c => { const o = oldConds.get(c.id);
@@ -1378,13 +1422,13 @@ function renderFailures() {
   setChecked("fm-roles", keepRoles); setChecked("fm-actions", keepActs);
   condOptions("fm-cond", $("fm-cond").value, "Not linked");
   const rows = S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1));
-  const total = rows.reduce((t, f) => t + (rpnOf(f) || 0), 0), unrated = rows.filter(f => !rpnOf(f)).length;
-  $("fm-total").textContent = rows.length ? "Total RPN " + total + (unrated ? " · " + unrated + " not yet rated" : "") : "";
+  const unrated = rows.filter(f => !rpnOf(f)).length;
+  $("fm-total").textContent = unrated ? unrated + " not yet rated" : "";
   if (!rows.length) { $("fm-table").innerHTML = '<tr><td class="muted">No failure modes yet. Start with a handoff or a shared responsibility that was flagged in this review.</td></tr>'; return; }
   let h = "<thead><tr><th>Where</th><th>Failure mode</th><th>Causes</th><th>Effects</th><th>Roles affected</th><th>O</th><th>D</th><th>S</th><th>RPN</th><th>Actions</th><th></th></tr></thead><tbody>";
   rows.forEach(f => {
     const acts = (f.actions || []).map(id => S.actions.find(a => a.id === id)).filter(Boolean);
-    h += "<tr><td>" + esc(refLabel(f.target) || "No longer in this review") + "</td><td><b>" + esc(f.mode) + "</b>" + (condById(f.conditionId) ? '<br><span class="chip trace" style="margin-top:4px">Weakens: ' + esc(condById(f.conditionId).required.slice(0, 60)) + "</span>" : "") + (f.safeguards ? '<br><span class="muted" style="font-size:.82rem">Safeguards: ' + esc(f.safeguards) + "</span>" : "") + "</td><td>" + esc(f.causes) + "</td><td>" + esc(f.effects) + "</td><td>" +
+    h += "<tr><td>" + esc(refLabel(f.target) || "No longer in this review") + (f.workflow === "proposed" ? '<br><span class="chip accent" style="margin-top:4px">Proposed workflow</span>' : "") + "</td><td><b>" + esc(f.mode) + "</b>" + (condById(f.conditionId) ? '<br><span class="chip trace" style="margin-top:4px">Weakens: ' + esc(condById(f.conditionId).required.slice(0, 60)) + "</span>" : "") + (f.safeguards ? '<br><span class="muted" style="font-size:.82rem">Safeguards: ' + esc(f.safeguards) + "</span>" : "") + "</td><td>" + esc(f.causes) + "</td><td>" + esc(f.effects) + "</td><td>" +
       (f.roles || []).map(id => '<span class="chip">' + esc(roleName(id)) + "</span>").join(" ") + '</td><td class="mono">' + (f.occ || "–") + '</td><td class="mono">' + (f.det || "–") + '</td><td class="mono">' + (f.sev || "–") +
       '</td><td class="rpn">' + (rpnOf(f) || '<span class="muted">not rated</span>') + "</td><td>" + (acts.length ? acts.map(a => '<span class="chip ' + (tierOf(a.type) === "weaker" ? "assume" : tierOf(a.type) === "stronger" ? "ok" : "accent") + '">' + esc(actionLabel(a)) + "</span>").join(" ") : '<span class="chip gap">No action</span>') +
       '</td><td><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-edit="' + esc(f.id) + '">Edit</button><button type="button" class="quiet small" data-del="' + esc(f.id) + '">Delete</button></span></td></tr>';
@@ -1396,7 +1440,7 @@ function renderFailures() {
 function startFailureEdit(id) {
   const f = S.failures.find(z => z.id === id); if (!f) return;
   editingFailure = id; renderFailures();
-  $("fm-target").value = f.target; $("fm-mode").value = f.mode; $("fm-causes").value = f.causes || ""; $("fm-effects").value = f.effects || "";
+  $("fm-target").value = f.target; $("fm-mode").value = f.mode; $("fm-flow").value = f.workflow === "proposed" ? "proposed" : "current"; $("fm-causes").value = f.causes || ""; $("fm-effects").value = f.effects || "";
   $("fm-occ").value = f.occ || ""; $("fm-det").value = f.det || ""; $("fm-sev").value = f.sev || "";
   setChecked("fm-roles", f.roles); setChecked("fm-actions", f.actions);
   $("fm-cond").value = f.conditionId || ""; $("fm-safe").value = f.safeguards || ""; $("fm-resid").value = f.residual || ""; $("fm-down").value = f.downstream || "";
@@ -1406,7 +1450,7 @@ function stopFailureEdit() { editingFailure = null; $("fm-form").reset(); setChe
 $("fm-cancel").addEventListener("click", stopFailureEdit);
 $("fm-form").addEventListener("submit", e => {
   e.preventDefault();
-  const rec = { target: $("fm-target").value, mode: $("fm-mode").value.trim(), causes: $("fm-causes").value.trim(), effects: $("fm-effects").value.trim(), roles: checked("fm-roles"),
+  const rec = { target: $("fm-target").value, workflow: $("fm-flow").value, mode: $("fm-mode").value.trim(), causes: $("fm-causes").value.trim(), effects: $("fm-effects").value.trim(), roles: checked("fm-roles"),
     occ: clampRating($("fm-occ").value), det: clampRating($("fm-det").value), sev: clampRating($("fm-sev").value), actions: checked("fm-actions"),
     conditionId: $("fm-cond").value, safeguards: $("fm-safe").value.trim(), residual: $("fm-resid").value.trim(), downstream: $("fm-down").value.trim() };
   if (!rec.target) { $("fm-target").focus(); return; }
@@ -1499,16 +1543,32 @@ function renderDriverChart() {
   svg += "</svg>";
   box.innerHTML = svg;
 }
+// The measure is cut wherever a recorded change on it starts. Each period lists every change started by then;
+// changes have no recorded end, so earlier ones are counted as still in place.
+function measureSegments(m) {
+  const pts = m.points;
+  const starts = S.actions.filter(a => a.measureId === m.id && a.start).map(a => ({ a, i: pts.findIndex(p => p[0] === a.start) })).filter(x => x.i >= 0).sort((x, y) => x.i - y.i || S.actions.indexOf(x.a) - S.actions.indexOf(y.a));
+  const bounds = [0].concat([...new Set(starts.map(x => x.i))].filter(i => i > 0).sort((x, y) => x - y));
+  return bounds.map((b, k) => { const e = k + 1 < bounds.length ? bounds[k + 1] : pts.length, seg = pts.slice(b, e);
+    return { from: b, to: e, pts: seg, med: median(seg.map(p => p[1])), inPlace: starts.filter(x => x.i <= b).map(x => x.a), begun: starts.filter(x => x.i === b).map(x => x.a) }; });
+}
+function segRange(seg) { return seg.pts[0][0] + (seg.pts.length > 1 ? "–" + seg.pts[seg.pts.length - 1][0] : "") + ", " + plural2(seg.pts.length, "point", "points"); }
+function segName(seg) { return seg.inPlace.length ? "With " + seg.inPlace.map(actionLabel).join(" + ") : "Before any recorded change"; }
 function actionResult(a) {
   const m = measureOf(a);
   if (!m) return "No measure yet";
   if (!m.points.length) return "Measure has no data yet";
-  const i = a.start ? m.points.findIndex(p => p[0] === a.start) : -1;
-  if (i < 1) return m.points.length + (m.points.length === 1 ? " data point" : " data points") + "; set a test start that matches a data point to compare before and after";
-  const later = S.actions.filter(b => b !== a && b.measureId === m.id).map(b => ({ b, j: m.points.findIndex(p => p[0] === b.start) })).filter(x => x.j > i).sort((x, y) => x.j - y.j)[0];
-  const end = later ? later.j : m.points.length;
-  const before = median(m.points.slice(0, i).map(p => p[1])), during = median(m.points.slice(i, end).map(p => p[1]));
-  return "Median " + fmtVal(m, before) + " before the test, " + fmtVal(m, during) + " from " + a.start + (later ? " until " + actionLabel(later.b) + " began at " + later.b.start : " on") + (m.goal != null ? "; goal " + fmtVal(m, m.goal) : "");
+  if (!a.start) return "Test start not set, so no before-and-after comparison is made";
+  const i = m.points.findIndex(p => p[0] === a.start);
+  if (i < 0) return "Test start " + a.start + " does not match a data point, so no before-and-after comparison is made";
+  if (i === 0) return "Test started at the first data point, so there is no earlier period to compare with";
+  const segs = measureSegments(m), k = segs.findIndex(s => s.from === i), now = segs[k], prev = segs[k - 1];
+  const together = now.begun.filter(b => b !== a), earlier = prev.inPlace, next = segs[k + 1];
+  let t = "Median " + fmtVal(m, prev.med) + " in " + segRange(prev) + " (" + (earlier.length ? "with " + earlier.map(actionLabel).join(" + ") + " already started" : "before any recorded change") + "); " +
+    fmtVal(m, now.med) + " in " + segRange(now) + (next ? " (until " + next.begun.map(actionLabel).join(" + ") + " began)" : "");
+  if (together.length) t += ". " + together.map(actionLabel).join(" + ") + " started at the same point, so this change cannot be separated from " + (together.length === 1 ? "it" : "them");
+  else if (earlier.length) t += ". " + earlier.map(actionLabel).join(" + ") + (earlier.length === 1 ? " began earlier and has" : " began earlier and have") + " no recorded end, so the difference is not this action alone";
+  return t + (m.goal != null ? "; goal " + fmtVal(m, m.goal) : "");
 }
 function traceHtml(a) {
   const ds = (a.drivers || []).map(id => S.drivers.find(d => d.id === id)).filter(Boolean);
@@ -1530,7 +1590,7 @@ function renderActions() {
   const secs = S.drivers.filter(d => d.level === "secondary");
   $("act-drivers").innerHTML = secs.length ? secs.map(d => pick("act-drivers", d.id, d.text)).join("") : '<span class="muted" style="font-size:.85rem">No secondary drivers yet. Add them in the driver diagram (stage 7).</span>';
   $("act-stmt").innerHTML = '<option value="">Not linked</option>' + S.statements.map((st, i) => '<option value="' + esc(st.id) + '">Statement ' + (i + 1) + ": " + esc(st.cause.slice(0, 70)) + "</option>").join("");
-  $("act-type").innerHTML = Object.keys(HIERARCHY).map(k => '<optgroup label="' + esc(HIERARCHY[k].label) + '">' + HIERARCHY[k].types.map(t => '<option value="' + esc(k + ":" + t) + '">' + esc(t) + "</option>").join("") + "</optgroup>").join("");
+  $("act-type").innerHTML = Object.keys(HIERARCHY).map(k => '<optgroup label="' + esc(HIERARCHY[k].label) + '">' + HIERARCHY[k].types.map(t => '<option value="' + esc(k + ":" + t) + '">' + esc(t) + "</option>").join("") + "</optgroup>").join(""); showMechPrompt();
   $("tiers").innerHTML = Object.keys(HIERARCHY).map(k => {
     const n = S.actions.filter(a => tierOf(a.type) === k).length;
     return '<div class="tier ' + k + '"><h3><span>' + esc(HIERARCHY[k].label) + '</span><span class="mono">' + n + '</span></h3><p class="muted" style="font-size:.86rem">' + esc(HIERARCHY[k].note) + "</p><ul>" + HIERARCHY[k].types.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul></div>";
@@ -1549,7 +1609,8 @@ function renderActions() {
     const li = el('<li class="item"><div class="item-head"><span class="chips"></span><span class="row" style="gap:4px;flex-wrap:nowrap"><button type="button" class="quiet small" data-a="edit">Edit</button><button type="button" class="quiet small" data-a="del">Delete</button></span></div><p class="what"></p><p class="muted" style="font-size:.88rem"></p><div class="chips" data-c></div><div class="chips" data-m></div><div class="trace" data-trace></div></li>');
     li.querySelector(".chips").innerHTML = '<span class="chip ' + (k === "stronger" ? "ok" : k === "intermediate" ? "accent" : "assume") + '">' + esc((HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + " · " + t) + "</span>" + (sIdx >= 0 ? '<span class="chip">Statement ' + (sIdx + 1) + "</span>" : '<span class="chip gap">Not linked to a statement</span>');
     li.querySelector(".what").textContent = actionLabel(a) + ". " + a.text;
-    li.querySelector(".muted").textContent = [a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due].filter(Boolean).join(" · ") || "No responsible role yet";
+    li.querySelector(".muted").textContent = [a.mechanism && "How it works: " + a.mechanism, a.owner && "Responsible: " + a.owner, a.due && "Target: " + a.due].filter(Boolean).join(" · ") || "No responsible role yet";
+    if (!a.mechanism && MECH_PROMPT[t]) li.querySelector(".chips").insertAdjacentHTML("beforeend", '<span class="chip assume" title="' + esc(MECH_PROMPT[t]) + '">How it works not described</span>');
     const m = measureOf(a), mbox = li.querySelector("[data-m]");
     if (!m) mbox.innerHTML = '<span class="chip gap">No measure yet: add one to see whether it worked</span>';
     else {
@@ -1576,7 +1637,7 @@ $("act-form").addEventListener("submit", e => {
     if (!name) { $("act-measure-new").focus(); return; }
     mid = uid("m"); S.measures.push({ id: mid, name, percent: /%|percent/i.test(name), goal: null, events: [], points: [] });
   }
-  const rec = { stmt: $("act-stmt").value, type: $("act-type").value, text: t, owner: $("act-owner").value.trim(), due: $("act-due").value, measureId: mid, start: $("act-start").value.trim(), drivers: checked("act-drivers"), conditions: checked("act-conds"),
+  const rec = { stmt: $("act-stmt").value, type: $("act-type").value, text: t, mechanism: $("act-mech").value.trim(), owner: $("act-owner").value.trim(), due: $("act-due").value, measureId: mid, start: $("act-start").value.trim(), drivers: checked("act-drivers"), conditions: checked("act-conds"),
     detail: { baseline: $("act-baseline").value.trim(), expected: $("act-expected").value.trim(), capacity: $("act-capacity").value.trim(), newDeps: $("act-newdeps").value.trim(), unintended: $("act-unintended").value.trim() },
     test: { proposedBy: $("act-proposedby").value.trim(), authorizedBy: $("act-authby").value.trim(), limits: $("act-limits").value.trim(), executed: $("act-executed").value.trim(), changes: $("act-changes").value.trim(), consequences: $("act-consequences").value.trim(), reviewedBy: $("act-reviewedby").value.trim(), decision: $("act-decision").value } };
   if (editingAction) Object.assign(S.actions.find(z => z.id === editingAction), rec); else S.actions.push(Object.assign({ id: uid("a") }, rec));
@@ -1587,15 +1648,17 @@ const ACT_TEST = [["proposedBy", "act-proposedby"], ["authorizedBy", "act-authby
 function startActionEdit(id) {
   const a = S.actions.find(z => z.id === id); if (!a) return;
   editingAction = id; renderActions();
-  $("act-stmt").value = a.stmt || ""; $("act-type").value = a.type; $("act-text").value = a.text; $("act-owner").value = a.owner || ""; $("act-due").value = a.due || "";
+  $("act-stmt").value = a.stmt || ""; $("act-type").value = a.type; showMechPrompt(); $("act-text").value = a.text; $("act-mech").value = a.mechanism || ""; $("act-owner").value = a.owner || ""; $("act-due").value = a.due || "";
   $("act-measure").value = a.measureId && S.measures.some(m => m.id === a.measureId) ? a.measureId : ""; $("act-measure-new-wrap").hidden = true; $("act-start").value = a.start || "";
   setChecked("act-drivers", a.drivers); setChecked("act-conds", a.conditions);
   ACT_DETAIL.forEach(([k, el2]) => { $(el2).value = (a.detail || {})[k] || ""; }); ACT_TEST.forEach(([k, el2]) => { $(el2).value = (a.test || {})[k] || ""; }); $("act-decision").value = (a.test || {}).decision || "pending";
   $("act-form-title").textContent = "Edit " + actionLabel(a).toLowerCase(); $("act-save").textContent = "Save changes"; $("act-cancel").hidden = false;
   $("act-form").querySelectorAll("details.more").forEach(d => { d.open = true; }); $("act-text").focus();
 }
-function stopActionEdit() { editingAction = null; $("act-form").reset(); setChecked("act-drivers", []); setChecked("act-conds", []); $("act-form-title").textContent = "Add an action"; $("act-save").textContent = "Add action"; $("act-cancel").hidden = true; $("act-measure-new-wrap").hidden = true; }
+function stopActionEdit() { editingAction = null; $("act-form").reset(); setChecked("act-drivers", []); setChecked("act-conds", []); $("act-form-title").textContent = "Add an action"; $("act-save").textContent = "Add action"; $("act-cancel").hidden = true; $("act-measure-new-wrap").hidden = true; showMechPrompt(); }
 $("act-cancel").addEventListener("click", stopActionEdit);
+function showMechPrompt() { const p = MECH_PROMPT[($("act-type").value || "").split(":")[1] || ""]; $("act-type-prompt").textContent = p || ""; $("act-type-prompt").hidden = !p; }
+$("act-type").addEventListener("change", showMechPrompt);
 $("act-measure").addEventListener("change", () => { $("act-measure-new-wrap").hidden = $("act-measure").value !== "__new__"; if (!$("act-measure-new-wrap").hidden) $("act-measure-new").focus(); });
 function actionLabel(a) { return "Action " + (S.actions.indexOf(a) + 1); }
 function measureOf(a) { return a && a.measureId ? S.measures.find(m => m.id === a.measureId) || null : null; }
@@ -1620,7 +1683,7 @@ function renderRunInputs() {
   $("run-edit").hidden = !m;
   if (!m) return;
   $("run-select").value = m.id;
-  $("run-name").value = m.name; $("run-goal").value = m.goal == null ? "" : m.goal; $("run-pct").checked = !!m.percent;
+  $("run-name").value = m.name; $("run-goal").value = m.goal == null ? "" : m.goal; $("run-pct").checked = !!m.percent; $("run-dir").value = m.direction === "up" || m.direction === "down" ? m.direction : "";
   $("run-type").value = m.type || "process"; condOptions("run-cond", m.conditionId, "Not linked");
   [["numerator", "run-num"], ["denominator", "run-den"], ["window", "run-window"], ["source", "run-source"], ["limits", "run-limits"]].forEach(([k, id]) => { $(id).value = m[k] || ""; });
   $("run-data").value = m.points.map(p => p[0] + ", " + p[1]).join("\n");
@@ -1636,7 +1699,7 @@ $("run-apply").addEventListener("click", () => {
   const m = currentMeasure(); if (!m) return;
   m.points = $("run-data").value.split("\n").map(l => l.split(",")).filter(p => p.length >= 2 && p[1].trim() !== "" && !isNaN(Number(p[1]))).map(p => [p[0].trim(), Number(p[1])]);
   m.events = $("run-notes").value.split("\n").map(l => { const i = l.indexOf(","); return i < 0 ? null : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }).filter(n => n && n[0] && n[1]);
-  m.percent = $("run-pct").checked; m.type = $("run-type").value; m.conditionId = $("run-cond").value;
+  m.percent = $("run-pct").checked; m.type = $("run-type").value; m.conditionId = $("run-cond").value; m.direction = $("run-dir").value;
   [["numerator", "run-num"], ["denominator", "run-den"], ["window", "run-window"], ["source", "run-source"], ["limits", "run-limits"]].forEach(([k, id]) => { m[k] = $(id).value.trim(); });
   const g = $("run-goal").value.trim(); m.goal = g === "" || isNaN(Number(g)) ? null : Number(g);
   renderRunInputs(); renderRun(); renderActions(); renderOverview();
@@ -1703,8 +1766,10 @@ function renderRun() {
   });
   svg += "</svg>";
   box.innerHTML = svg;
-  if (!showMed) { $("run-signals").innerHTML = '<span class="chip">Median appears at 10 or more data points (' + pts.length + " so far)</span>"; return; }
-  $("run-signals").innerHTML = sig.length ? sig.map(s => '<span class="chip ok">' + (s.k === "shift" ? "Shift" : "Trend") + ": " + esc(pts[s.from][0]) + " to " + esc(pts[s.to][0]) + (s.dir > 0 ? (s.k === "shift" ? ", above the median" : ", going up") : (s.k === "shift" ? ", below the median" : ", going down")) + "</span>").join("") : '<span class="chip">No shift or trend yet</span>';
+  const dir = m.direction === "up" || m.direction === "down" ? m.direction : "";
+  const dirChip = dir ? "" : '<span class="chip assume">Improvement direction not recorded: signals are not read as better or worse</span>';
+  if (!showMed) { $("run-signals").innerHTML = '<span class="chip">Median appears at 10 or more data points (' + pts.length + " so far)</span>" + dirChip; return; }
+  $("run-signals").innerHTML = (sig.length ? sig.map(s => '<span class="chip ' + (!dir ? "" : dirWord(dir, s.dir).indexOf("opposite") >= 0 ? "assume" : "ok") + '">' + (s.k === "shift" ? "Shift" : "Trend") + ": " + esc(pts[s.from][0]) + " to " + esc(pts[s.to][0]) + (s.dir > 0 ? (s.k === "shift" ? ", above the median" : ", going up") : (s.k === "shift" ? ", below the median" : ", going down")) + esc(dirWord(dir, s.dir)) + "</span>").join("") : '<span class="chip">No shift or trend yet</span>') + dirChip;
 }
 
 // ---------- what the conditions analysis adds (calculated from the team's entries) ----------
@@ -1720,9 +1785,9 @@ function conditionsAdds() {
   items.push({ n: gaps.length, href: "#ownership", t: "Roles whose capacity to act and expectation to act did not match",
     d: gaps.length ? byDuty.map(d => d.name + ": " + gaps.filter(g => g.d === d).map(g => g.r.name + " " + g.k).join("; ")).join(" · ") : "None recorded. Open a responsibility in stage 4 to record capacity and expectation for each role.",
     why: "A standard review often asks who should have acted. Separating who could act from who was expected to act shows structural gaps instead of individual blame." });
-  const ne = S.conditions.filter(c => c.status === "not_established"), rne = receiptNotEstablished(), ane = ackUnknown();
-  items.push({ n: ne.length + rne.length + ane.length, href: "#lanes", t: "Findings recorded as not established rather than as failures",
-    d: [ne.length ? plural2(ne.length, "condition", "conditions") + " (" + ne.map(c => c.required.charAt(0).toLowerCase() + c.required.slice(1)).join("; ") + ")" : "", rne.length ? plural2(rne.length, "handoff", "handoffs") + " with receipt not established" : "", ane.length ? plural2(ane.length, "handoff", "handoffs") + " with acknowledgment not established" : ""].filter(Boolean).join(" · ") || "None recorded.",
+  const ne = S.conditions.filter(c => c.status === "not_established"), rne = receiptUnknown(), ane = ackUnknown(), une = dutiesWith("uncertain");
+  items.push({ n: ne.length + rne.length + ane.length + une.length, href: "#lanes", t: "Findings recorded as not established rather than as failures",
+    d: [ne.length ? plural2(ne.length, "condition", "conditions") + " (" + ne.map(c => c.required.charAt(0).toLowerCase() + c.required.slice(1)).join("; ") + ")" : "", rne.length ? plural2(rne.length, "handoff", "handoffs") + " with receipt not established" : "", ane.length ? plural2(ane.length, "handoff", "handoffs") + " with acknowledgment not established" : "", une.length ? plural2(une.length, "responsibility", "responsibilities") + " with ownership uncertain (" + une.map(d => d.name.charAt(0).toLowerCase() + d.name.slice(1)).join("; ") + ")" : ""].filter(Boolean).join(" · ") || "None recorded.",
     why: "Where no evidence exists either way, the finding stays an open question instead of becoming a conclusion." });
   const unaddressed = S.conditions.filter(c => ["absent", "changed", "not_established", "disputed"].includes(c.status) && c.resolution !== "resolved" && !condLinks(c).actions.length);
   items.push({ n: unaddressed.length, href: "#lanes", t: "Unresolved conditions with a discrepancy but no action",
@@ -1740,24 +1805,24 @@ function renderAdds() { const b = $("adds-event"); if (b) b.innerHTML = addsHtml
 
 // ---------- stage 10: summary (built only from the team's entries) ----------
 function fmtVal(m, v) { return v == null ? "–" : (Math.round(v * 10) / 10) + (m && m.percent ? "%" : ""); }
+// No baseline is built from points after a recorded change, and the goal is read only when the team has said
+// whether higher or lower is better.
 function measureSummary(m) {
   const pts = m.points, n = pts.length;
   if (n < 2) return null;
   const starts = S.actions.filter(a => a.measureId === m.id).map(a => ({ a, i: pts.findIndex(p => p[0] === a.start) })).filter(x => x.i >= 0).sort((x, y) => x.i - y.i);
-  let bEnd = starts.length && starts[0].i >= 5 ? starts[0].i : Math.min(6, Math.floor(n / 2));
-  if (bEnd < 1) bEnd = 1;
-  const rStart = Math.max(bEnd, n - 6);
-  const base = pts.slice(0, bEnd), recent = pts.slice(rStart);
-  const vals = pts.map(p => p[1]), last = pts[n - 1];
-  const reached = m.goal != null && vals.some(v => (m.goal >= vals[0] ? v >= m.goal : v <= m.goal));
+  const segs = measureSegments(m), vals = pts.map(p => p[1]), last = pts[n - 1];
+  const dir = m.direction === "up" || m.direction === "down" ? m.direction : "";
+  const reached = m.goal != null && dir ? vals.some(v => dir === "up" ? v >= m.goal : v <= m.goal) : null;
   const sig = n >= 10 ? runSignals(vals, median(vals)) : [];
-  return { base, recent, baseMed: median(base.map(p => p[1])), recentMed: median(recent.map(p => p[1])), last, reached, sig, starts };
+  return { segs, hasBaseline: starts.length > 0 && !segs[0].inPlace.length, last, reached, dir, sig, starts };
 }
+function dirWord(dir, sign) { return !dir ? "" : (dir === "up") === (sign > 0) ? ", in the intended direction" : ", opposite to the intended direction"; }
 function renderSummary() {
   const box = $("report"); if (!box) return;
   const steps = sortedSteps();
-  const noRecv = receiptNotEstablished();
-  const unack = ackNo(), ackU = ackUnknown(), unchk = unchecked(), uncl = unclaimed();
+  const noRecv = receiptUnknown(), recvNo = receiptFailed(), recvConf = receiptConflicts(), noFollow = noFollowUp();
+  const unack = ackNo(), ackU = ackUnknown(), unchk = unchecked(), discl = dutiesWith("disclaimed"), uncert = dutiesWith("uncertain"), unanswered = dutiesWith("none");
   const fms = S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1));
   const liveActs = id => S.actions.find(a => a.id === id);
   const fmNoAction = fms.filter(f => !(f.actions || []).some(liveActs));
@@ -1774,14 +1839,21 @@ function renderSummary() {
   if (S.event.summary) h += "<p>" + esc(S.event.summary) + "</p>";
   if (S.event.outcome) h += "<p><b>Outcome for the patient:</b> " + esc(S.event.outcome) + "</p>";
   h += "<p>The team's review records " + plural(steps.length, "step", "steps") + " across " + plural(S.roles.length, "role", "roles") + (S.roles.length ? " (" + esc(list(S.roles.map(r => r.name))) + ")" : "") + ". It records " +
-    plural(unack.length, "handoff documented as not acknowledged", "handoffs documented as not acknowledged") + ", " + plural(ackU.length, "handoff whose acknowledgment is not established", "handoffs whose acknowledgment is not established") + ", " + plural(noRecv.length, "handoff whose receipt is not established", "handoffs whose receipt is not established") + ", " +
-    plural(unchk.length, "unchecked assumption", "unchecked assumptions") + ", and " + plural(uncl.length, "shared responsibility that no role claimed", "shared responsibilities that no role claimed") + ".</p></section>";
+    plural(unack.length, "handoff documented as not acknowledged", "handoffs documented as not acknowledged") + ", " + plural(ackU.length, "handoff whose acknowledgment is not established", "handoffs whose acknowledgment is not established") + ", " +
+    plural(recvNo.length, "handoff documented as not received", "handoffs documented as not received") + ", " + plural(noRecv.length, "handoff whose receipt is not established", "handoffs whose receipt is not established") + ", " +
+    plural(unchk.length, "unchecked assumption", "unchecked assumptions") + ", " + plural(discl.length, "shared responsibility that every answering role said belonged to another role", "shared responsibilities that every answering role said belonged to another role") +
+    ", and " + plural(uncert.length, "shared responsibility that no role claimed while at least one role was unsure", "shared responsibilities that no role claimed while at least one role was unsure") + ".</p></section>";
 
   // Where work did not connect
-  if (noRecv.length || uncl.length) {
+  const dutyLi = d => { const st = dutyStatus(d); return "<li>" + esc(d.name) + (st.conflictText ? ". " + esc(st.conflictText) : "") + (d.escalation ? ". Escalation arrangement: " + esc(d.escalation) : "") + "</li>"; };
+  const hoLine = s => esc(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + ": " + (s.transfer || s.what));
+  if (noRecv.length || recvNo.length || recvConf.length || discl.length || uncert.length) {
     h += "<section><h2>Where the work did not connect</h2>";
-    if (noRecv.length) h += "<p><b>Handoffs whose receipt is not established</b> <span class=\"note\">(no step records taking them; this is missing evidence, not proof of failure)</span></p><ul>" + noRecv.map(s => "<li>" + esc(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + ": " + s.what) + (s.ack === "yes" ? " <span class=\"note\">(acknowledged, but no follow-up step recorded)</span>" : "") + "</li>").join("") + "</ul>";
-    if (uncl.length) h += "<p><b>Responsibilities no role claimed</b></p><ul>" + uncl.map(d => { const st = dutyStatus(d); return "<li>" + esc(d.name + ": " + st.label.toLowerCase()) + (st.conflictText ? ". " + esc(st.conflictText) : "") + (d.escalation ? ". Escalation arrangement: " + esc(d.escalation) : "") + "</li>"; }).join("") + "</ul>";
+    if (recvNo.length) h += "<p><b>Handoffs documented as not received</b></p><ul>" + recvNo.map(s => "<li>" + hoLine(s) + (s.recvEvidence ? ' <span class="note">(evidence: ' + esc(s.recvEvidence) + ")</span>" : ' <span class="note">(no evidence recorded)</span>') + "</li>").join("") + "</ul>";
+    if (noRecv.length) h += "<p><b>Handoffs whose receipt is not established</b> <span class=\"note\">(no receipt record, no acknowledgment and no linked step in the receiving role; this is missing evidence, not proof of failure)</span></p><ul>" + noRecv.map(s => "<li>" + hoLine(s) + "</li>").join("") + "</ul>";
+    if (recvConf.length) h += "<p><b>Records that disagree</b> <span class=\"note\">(both records are kept; the team decides which is right)</span></p><ul>" + recvConf.map(x => "<li>" + hoLine(x.s) + ": documented as not received, but " + esc(x.why) + "</li>").join("") + "</ul>";
+    if (discl.length) h += "<p><b>Responsibilities every answering role said belonged to another role</b></p><ul>" + discl.map(dutyLi).join("") + "</ul>";
+    if (uncert.length) h += "<p><b>Responsibilities with ownership uncertain</b> <span class=\"note\">(no role claimed it and at least one role was unsure; this is not a finding that nobody owned it)</span></p><ul>" + uncert.map(dutyLi).join("") + "</ul>";
     h += "</section>";
   }
 
@@ -1798,7 +1870,9 @@ function renderSummary() {
     const bLines = [];
     unack.forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": documented as not acknowledged"));
     ackU.forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": acknowledgment not established"));
-    noRecv.filter(s => s.ack === "yes").forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": acknowledged, but receipt by a step in the receiving role is not established"));
+    recvNo.forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": documented as not received"));
+    noRecv.forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": receipt not established"));
+    noFollow.forEach(s => bLines.push(fmtTime(s.t) + ", " + roleName(s.role) + " to " + roleName(s.to) + (s.transfer ? " (" + s.transfer + ")" : "") + ": " + receiptOf(s).label + ", but no later step in the receiving role is linked, so the timeline does not show what was done with it"));
     S.conditions.filter(c => c.domain === "handoff" && c.resolution !== "resolved").forEach(c => bLines.push("Unresolved across the boundary: " + c.required + pathText(c)));
     h += "<h3>C. Boundary and transmission analysis</h3>" + (bLines.length ? "<ul>" + bLines.map(t => "<li>" + esc(t) + "</li>").join("") + "</ul>" : '<p class="note">No unresolved handoffs recorded.</p>');
     const fLines = [];
@@ -1819,6 +1893,8 @@ function renderSummary() {
     const noEv = S.statements.filter(x => !x.evidence); if (noEv.length) lim.push(plural(noEv.length, "causal statement has", "causal statements have") + " no evidence recorded.");
     S.conditions.filter(c => c.question).forEach(c => lim.push("Open question: " + c.question));
     const inc = S.duties.filter(d => dutyStatus(d).incomplete); if (inc.length) lim.push("Responsibility answers are incomplete for: " + inc.map(d => d.name).join("; ") + ".");
+    if (unanswered.length) lim.push("No role has answered yet for: " + unanswered.map(d => d.name).join("; ") + ".");
+    if (recvConf.length) lim.push(plural(recvConf.length, "handoff has", "handoffs have") + " records that disagree about receipt; both are kept.");
     if (S.event.unknowns) lim.push("Unknown or disputed at the start: " + S.event.unknowns + ".");
     S.measures.filter(m => m.limits).forEach(m => lim.push("Measure limitation (" + m.name + "): " + m.limits + "."));
     lim.push("Where a record is missing, the finding is reported as not established. An absent record is not evidence that something failed.");
@@ -1830,9 +1906,11 @@ function renderSummary() {
 
   // FMEA
   if (fms.length) {
-    h += '<section><h2>Prospective failure-mode analysis</h2><div class="scroll-x"><table><thead><tr><th>Failure mode</th><th>Where</th><th class="num">RPN</th><th>Action linked</th></tr></thead><tbody>' +
-      fms.map(f => { const acts = (f.actions || []).map(liveActs).filter(Boolean); return "<tr><td>" + esc(f.mode) + "</td><td>" + esc((refLabel(f.target) || "").replace(/:.*$/, "")) + '</td><td class="num">' + (rpnOf(f) || "–") + "</td><td>" + (acts.length ? '<span class="yes">Yes</span> · ' + esc(acts.map(actionLabel).join(", ")) : '<span class="no">No</span>') + "</td></tr>"; }).join("") +
-      '</tbody></table></div><p class="note">RPN = occurrence × detection × severity, from the team\'s own 1–10 ratings' + (fms.some(f => !rpnOf(f)) ? "; – means not yet rated" : "") + ". Rankings are not clinical safety determinations.</p></section>";
+    const fmTable = list => '<div class="scroll-x"><table><thead><tr><th>Failure mode</th><th>Where</th><th class="num">Severity</th><th class="num">RPN</th><th>Action linked</th></tr></thead><tbody>' +
+      list.map(f => { const acts = (f.actions || []).map(liveActs).filter(Boolean); return "<tr><td>" + esc(f.mode) + "</td><td>" + esc((refLabel(f.target) || "").replace(/:.*$/, "")) + '</td><td class="num">' + (f.sev || "–") + '</td><td class="num">' + (rpnOf(f) || "–") + "</td><td>" + (acts.length ? '<span class="yes">Yes</span> · ' + esc(acts.map(actionLabel).join(", ")) : '<span class="no">No</span>') + "</td></tr>"; }).join("") + "</tbody></table></div>";
+    const cur = fms.filter(f => f.workflow !== "proposed"), prop = fms.filter(f => f.workflow === "proposed");
+    h += "<section><h2>Prospective failure-mode analysis</h2>" + (cur.length ? (prop.length ? "<h3>Current workflow</h3>" : "") + fmTable(cur) : "") + (prop.length ? "<h3>Proposed workflow, after the changes</h3>" + fmTable(prop) : "") +
+      '<p class="note">RPN = occurrence × detection × severity, from the team\'s own 1–10 ratings' + (fms.some(f => !rpnOf(f)) ? "; – means not yet rated" : "") + ". Severity is shown on its own because a low RPN can hide a severe failure mode. RPNs are not added up, and rankings are not clinical safety determinations.</p></section>";
   }
 
   // Aim and measure
@@ -1841,12 +1919,14 @@ function renderSummary() {
     const ms = aimM ? measureSummary(aimM) : null;
     if (aimM && ms) {
       h += '<p class="note">Measure: ' + esc(aimM.name) + " · " + esc({ process: "process measure", outcome: "outcome measure", balancing: "balancing measure", condition: "condition-specific measure" }[aimM.type || "process"]) + (aimM.numerator ? " · numerator: " + esc(aimM.numerator) : "") + (aimM.denominator ? " · denominator: " + esc(aimM.denominator) : "") + (aimM.window ? " · " + esc(aimM.window) : "") + (aimM.source ? " · source: " + esc(aimM.source) : "") + "</p>";
-      h += '<div class="tiles"><div class="tile"><span class="k">Baseline median · ' + esc(ms.base[0][0] + "–" + ms.base[ms.base.length - 1][0]) + '</span><span class="v">' + fmtVal(aimM, ms.baseMed) + '</span></div>' +
-        '<div class="tile"><span class="k">Recent median · ' + esc(ms.recent[0][0] + "–" + ms.recent[ms.recent.length - 1][0]) + '</span><span class="v">' + fmtVal(aimM, ms.recentMed) + "</span></div>" +
+      if (ms.starts.length) h += '<div class="tiles">' + ms.segs.map(sg => '<div class="tile"><span class="k">' + esc(segName(sg) + " · " + segRange(sg)) + '</span><span class="v">' + fmtVal(aimM, sg.med) + "</span></div>").join("") +
         (aimM.goal != null ? '<div class="tile goal"><span class="k">Goal</span><span class="v">' + fmtVal(aimM, aimM.goal) + "</span></div>" : "") + "</div>";
+      else h += '<p class="note">No test of change on this measure has a start that matches a data point, so no baseline or before-and-after comparison is made.</p>';
+      if (ms.starts.length && !ms.hasBaseline) h += '<p class="note">A change was already in place at the first data point, so there is no baseline period.</p>';
+      if (ms.segs.some(sg => sg.inPlace.length > 1)) h += '<p class="note">Changes overlap in time. A period with more than one change in place shows what happened while all of them were in place, not the effect of any one of them.</p>';
       const shift = ms.sig.find(x => x.k === "shift" && x.to === aimM.points.length - 1);
-      h += "<p>Latest value " + fmtVal(aimM, ms.last[1]) + " (" + esc(ms.last[0]) + ")." + (aimM.goal != null ? (ms.reached ? " The goal has been reached in at least one period." : " The goal has not yet been reached in any period.") : "") +
-        (shift ? " The run chart shows a shift: " + plural(shift.to - shift.from + 1, "point", "points") + " in a row " + (shift.dir > 0 ? "above" : "below") + " the median, from " + esc(aimM.points[shift.from][0]) + "." : "") + "</p>";
+      h += "<p>Latest value " + fmtVal(aimM, ms.last[1]) + " (" + esc(ms.last[0]) + ")." + (aimM.goal != null ? (ms.reached === null ? " The goal is not read as reached or not reached, because whether a higher or lower value is better has not been recorded." : ms.reached ? " The goal has been reached in at least one period." : " The goal has not yet been reached in any period.") : "") +
+        (shift ? " The run chart shows a shift: " + plural(shift.to - shift.from + 1, "point", "points") + " in a row " + (shift.dir > 0 ? "above" : "below") + " the median, from " + esc(aimM.points[shift.from][0]) + dirWord(ms.dir, shift.dir) + "." : "") + " Before-and-after medians show when the measure changed, not what caused the change.</p>";
       if (ms.starts.length) h += '<p class="note">Tests of change on this measure: ' + esc(ms.starts.map(x => actionLabel(x.a) + " from " + x.a.start + " (" + (HIERARCHY[tierOf(x.a.type)] ? HIERARCHY[tierOf(x.a.type)].label.replace(" actions", "").toLowerCase() : "") + ")").join("; ")) + ".</p>";
     } else if (aimM) h += '<p class="note">The aim\'s measure has fewer than two data points.</p>';
     h += "</section>";
@@ -1856,16 +1936,21 @@ function renderSummary() {
   if (S.actions.length) {
     h += '<section><h2>Actions and results so far</h2><div class="scroll-x"><table><thead><tr><th>Action</th><th>Strength</th><th>Result so far</th></tr></thead><tbody>' +
       S.actions.map(a => { const k = tierOf(a.type), r = actionResult(a);
-        return "<tr><td>" + esc(actionLabel(a) + ". " + a.text) + "</td><td>" + esc(HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + "</td><td>" + esc(r) + "</td></tr>"; }).join("") + "</tbody></table></div></section>";
+        return "<tr><td>" + esc(actionLabel(a) + ". " + a.text) + (a.mechanism ? '<br><span class="note">How it works: ' + esc(a.mechanism) + "</span>" : "") + "</td><td>" + esc(HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + "</td><td>" + esc(r) + "</td></tr>"; }).join("") +
+      '</tbody></table></div><p class="note">Results compare medians before and after each recorded start. They show timing, not cause.</p></section>';
   }
 
   // Items requiring investigation
   const items = [];
   if (fmNoAction.length) items.push(plural(fmNoAction.length, "of the " + fms.length + " documented failure modes has", "of the " + fms.length + " documented failure modes have").replace(/^(\d+) of/, "$1 of") + " no linked action: " + list(fmNoAction.map(f => f.mode.charAt(0).toLowerCase() + f.mode.slice(1))) + ".");
-  if (noRecv.length) items.push(plural(noRecv.length, "handoff has", "handoffs have") + " receipt not established: no step records taking " + (noRecv.length === 1 ? "it" : "them") + ". Confirm with the roles involved what happened at each.");
+  if (noRecv.length) items.push(plural(noRecv.length, "handoff has", "handoffs have") + " receipt not established: there is no receipt record, acknowledgment or linked receiving step. Confirm with the roles involved what happened at each.");
+  if (recvConf.length) items.push(plural(recvConf.length, "handoff has", "handoffs have") + " records that disagree about receipt. Check the sources behind each record.");
   const noCond = S.actions.filter(a => !(a.conditions || []).some(id => condById(id)));
   if (noCond.length) items.push(plural(noCond.length, "action does", "actions do") + " not name the process condition " + (noCond.length === 1 ? "it is" : "they are") + " meant to change.");
-  if (uncl.length) items.push(plural(uncl.length, "shared responsibility has", "shared responsibilities have") + " no role that believed it was theirs. Agree who owns " + (uncl.length === 1 ? "it" : "each") + ".");
+  if (discl.length) items.push(plural(discl.length, "shared responsibility was", "shared responsibilities were") + " said by every answering role to belong to another role. Agree who owns " + (discl.length === 1 ? "it" : "each") + ".");
+  if (uncert.length) items.push(plural(uncert.length, "shared responsibility has", "shared responsibilities have") + " ownership uncertain. Ask the roles who were unsure what they understood their part to be.");
+  const noDir = S.measures.filter(m => m.goal != null && m.direction !== "up" && m.direction !== "down");
+  if (noDir.length) items.push(plural(noDir.length, "measure has", "measures have") + " a goal but no recorded direction of improvement: " + list(noDir.map(m => m.name)) + ".");
   const statementsWeakOnly = S.statements.filter(st => { const acts = S.actions.filter(a => a.stmt === st.id); return acts.length && acts.every(a => tierOf(a.type) === "weaker"); });
   if (statementsWeakOnly.length) items.push(plural(statementsWeakOnly.length, "causal statement is", "causal statements are") + " addressed only by weaker actions that depend on people remembering.");
   const noMeasure = S.actions.filter(a => !measureOf(a));
@@ -1907,14 +1992,14 @@ try { if (window.self === window.top) { const b = $("save-file"); b.hidden = fal
 function report() {
   const L = [];
   L.push("EVENT REVIEW: " + (S.event.title || "Untitled")); L.push("Setting: " + S.event.setting); L.push(""); L.push("What happened:"); L.push(S.event.summary); L.push("Outcome: " + S.event.outcome); L.push("");
-  L.push("TIMELINE"); sortedSteps().forEach((s, i) => L.push((i + 1) + ". " + fmtTime(s.t) + " " + roleName(s.role) + ": " + s.what + (s.to ? " -> " + roleName(s.to) + " (" + (s.ack === "yes" ? "acknowledged" : s.ack === "no" ? "not acknowledged" : "acknowledgement not known") + ")" : "") + (s.belief ? " | Believed: " + s.belief + " [" + (s.checked === "yes" ? "verified" : "assumed") + "]" : "")));
+  L.push("TIMELINE"); sortedSteps().forEach((s, i) => L.push((i + 1) + ". " + fmtTime(s.t) + " " + roleName(s.role) + ": " + s.what + (s.to ? " -> " + roleName(s.to) + " (" + (s.ack === "yes" ? "acknowledged" : s.ack === "no" ? "not acknowledged" : "acknowledgement not known") + "; " + receiptOf(s).label + ")" : "") + (s.belief ? " | Believed: " + s.belief + " [" + (s.checked === "yes" ? "verified" : "assumed") + "]" : "")));
   L.push(""); L.push("SHARED RESPONSIBILITIES"); S.duties.forEach(d => L.push("- " + d.name + ": " + dutyStatus(d).label));
   L.push(""); L.push("CONTRIBUTING FACTORS"); S.categories.forEach(c => { const l = S.causes.filter(z => z.cat === c); if (l.length) { L.push(c + ":"); l.forEach(z => L.push("  - " + z.text)); } });
   L.push(""); L.push("CAUSAL STATEMENTS"); S.statements.forEach((st, i) => L.push((i + 1) + ". Because " + st.cause + ", " + st.effect + ", which increased the likelihood of " + st.event + "."));
   L.push(""); L.push("ACTIONS"); S.actions.forEach(a => { const k = tierOf(a.type); L.push("- [" + (HIERARCHY[k] ? HIERARCHY[k].label.replace(" actions", "") : "") + ": " + (a.type.split(":")[1] || "") + "] " + a.text + (a.owner ? " | Responsible: " + a.owner : "") + (measureOf(a) ? " | Measure: " + measureOf(a).name + (a.start ? " (test starts " + a.start + ")" : "") : " | No measure")); });
   L.push(""); L.push("FAILURE MODES (team ratings; RPN = occurrence x detection x severity)"); S.failures.slice().sort((a, b) => (rpnOf(b) || -1) - (rpnOf(a) || -1)).forEach(f => L.push("- " + (refLabel(f.target) || "?") + " | " + f.mode + " | causes: " + (f.causes || "-") + " | effects: " + (f.effects || "-") + " | roles: " + (f.roles || []).map(roleName).join(", ") + " | O" + (f.occ || "-") + " D" + (f.det || "-") + " S" + (f.sev || "-") + " RPN " + (rpnOf(f) || "not rated") + " | actions: " + ((f.actions || []).map(id => { const a = S.actions.find(z => z.id === id); return a ? actionLabel(a) : null; }).filter(Boolean).join(", ") || "none")));
   L.push(""); L.push("DRIVER DIAGRAM"); L.push("Aim: " + (S.aim.text || "-")); S.drivers.filter(d => d.level === "primary").forEach(p => { L.push("- Primary: " + p.text); S.drivers.filter(d => (d.parents || []).includes(p.id)).forEach(d => L.push("    - Secondary: " + d.text + " | change ideas: " + (S.actions.filter(a => (a.drivers || []).includes(d.id)).map(actionLabel).join(", ") || "none"))); });
-  L.push(""); L.push("MEASURES"); S.measures.forEach(m => { const v = m.points.map(p => p[1]); L.push("- " + m.name + (m.goal != null ? " | Goal: " + m.goal : "") + " | " + v.length + " data points" + (v.length ? ", latest " + v[v.length - 1] : "") + (v.length >= 10 ? ", median " + median(v) : "")); S.actions.filter(a => a.measureId === m.id).forEach(a => L.push("    tested by " + actionLabel(a) + (a.start ? " from " + a.start : "") + ": " + a.text)); });
+  L.push(""); L.push("MEASURES"); S.measures.forEach(m => { const v = m.points.map(p => p[1]); L.push("- " + m.name + (m.goal != null ? " | Goal: " + m.goal : "") + " | Improvement: " + (m.direction === "up" ? "higher" : m.direction === "down" ? "lower" : "not recorded") + " | " + v.length + " data points" + (v.length ? ", latest " + v[v.length - 1] : "") + (v.length >= 10 ? ", median " + median(v) : "")); S.actions.filter(a => a.measureId === m.id).forEach(a => L.push("    tested by " + actionLabel(a) + (a.start ? " from " + a.start : "") + ": " + a.text)); });
   L.push(""); L.push("Prepared with the ICA Safety Review prototype. Fictional or de-identified data only.");
   return L.join("\n");
 }

@@ -141,7 +141,7 @@ def test_10_existing_pages_intact(page):
         go(page, stage)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), stage
     assert page.locator("#lane-frame .step-dot").count() == 10
-    assert page.locator("#fm-table tbody tr").count() == 4
+    assert page.locator("#fm-table tbody tr").count() == 5
     assert page.locator("#drv-chart svg rect").count() >= 9
     assert page.locator("#run-chart svg").count() == 1
     assert page.errors == []
@@ -177,3 +177,118 @@ def test_collapsed_responsibility_boxes_show_their_result(page):
     box = page.locator("#duty-dims details").first
     assert box.evaluate("d => d.open") is False
     assert box.bounding_box()["height"] < 80
+
+
+# ---- Independent pressure-test decision, P0 and P2 ----
+
+def load_modified(pg, base_url, js):
+    """Load the example case after changing it with a JavaScript expression on `o`."""
+    data = pg.evaluate("(() => { const o = icaReviewData(); " + js + "; return JSON.stringify(o); })()")
+    pg.goto(base_url + "#save")
+    pg.wait_for_selector("#load-paste")
+    pg.fill("#load-paste", data)
+    pg.click("#load-btn")
+    assert pg.inner_text("#load-msg") == "Review loaded."
+
+
+def section(text, start, end):
+    return text.split(start)[1].split(end)[0]
+
+
+def test_p0_1_uncertain_responsibility_is_not_reported_as_disclaimed(page):
+    text = report_text(page)
+    where = section(text, "Where the work did not connect", "ICA conditions analysis")
+    disclaimed = section(where, "every answering role said belonged to another role", "Responsibilities with ownership uncertain")
+    uncertain = where.split("Responsibilities with ownership uncertain")[1]
+    assert "Acting on the critical lactate result" in disclaimed
+    assert "Resolving the antibiotic allergy question" not in disclaimed
+    assert "Resolving the antibiotic allergy question" in uncertain
+    assert "not a finding that nobody owned it" in uncertain
+    assert "1 shared responsibility that no role claimed while at least one role was unsure" in text
+
+
+def test_p0_2_receipt_failed_unknown_and_unlinked_are_separate(page, base_url):
+    text = report_text(page)
+    where = section(text, "Handoffs whose receipt is not established", "Responsibilities every")
+    assert "Allergy question" in where and "Critical lactate result, via the ward board" in where
+    # the handover was acknowledged: received, but nothing later is linked. That is a timeline gap, not a receipt finding.
+    assert "Patient handover" not in where
+    c = section(text, "C. Boundary and transmission analysis", "D. Functional consequences")
+    assert "(Patient handover): received (shown by the acknowledgment), but no later step in the receiving role is linked" in c
+    load_modified(page, base_url, 'o.steps.find(s => s.id === "s6").recv = "no"; o.steps.find(s => s.id === "s6").recvEvidence = "Day nurse interview"; o.steps.find(s => s.id === "s5").recv = "no"')
+    text = report_text(page)
+    assert "Handoffs documented as not received" in text
+    assert "Critical lactate result, via the ward board (evidence: Day nurse interview)" in text
+    conflict = section(text, "Records that disagree", "Responsibilities every")
+    assert "Critical lactate result 3.8 mmol/L: documented as not received, but acknowledgment is recorded as confirmed" in conflict
+
+
+def test_p0_3_no_total_rpn(page):
+    go(page, "risks")
+    assert "Total RPN" not in page.inner_text("#s-risks")
+    text = report_text(page)
+    assert "Total RPN" not in text and "RPNs are not added up" in text
+    assert "Severity" in section(text, "Prospective failure-mode analysis", "Improvement aim")
+
+
+def test_p0_4_goal_needs_a_recorded_direction(page, base_url):
+    text = report_text(page)
+    assert "The goal has not yet been reached in any period." in text
+    load_modified(page, base_url, 'o.measures.forEach(m => { delete m.direction; })')
+    text = report_text(page)
+    assert "not read as reached or not reached" in text
+    assert "has not yet been reached" not in text and "has been reached" not in text
+    assert "a goal but no recorded direction of improvement" in text
+    go(page, "measure")
+    assert "Improvement direction not recorded" in page.inner_text("#run-signals")
+
+
+def test_p0_5_baseline_excludes_points_after_a_change(page, base_url):
+    text = report_text(page)
+    aim = section(text, "Improvement aim", "Actions and results so far")
+    assert "Before any recorded change · Wk 1–Wk 2, 2 points" in aim
+    assert "Wk 1–Wk 6" not in aim
+    assert "With Action 3 · Wk 3–Wk 6, 4 points" in aim and "With Action 3 + Action 1 · Wk 7–Wk 12, 6 points" in aim
+    # no recorded start: no baseline is invented
+    load_modified(page, base_url, 'o.actions.forEach(a => { a.start = ""; })')
+    aim = section(report_text(page), "Improvement aim", "Actions and results so far")
+    assert "no baseline or before-and-after comparison is made" in aim and "Before any recorded change" not in aim
+
+
+def test_p0_6_overlapping_changes_are_not_credited_to_one_action(page, base_url):
+    text = report_text(page)
+    row = section(text, "Action 1. Send critical results", "Action 2.")
+    assert "Median 51.5% in Wk 3–Wk 6, 4 points (with Action 3 already started); 73.5% in Wk 7–Wk 12" in row
+    assert "Action 3 began earlier and has no recorded end, so the difference is not this action alone" in row
+    load_modified(page, base_url, 'o.actions.find(a => a.id === "a2").measureId = "m1"; o.actions.find(a => a.id === "a2").start = "Wk 7"')
+    text = report_text(page)
+    rows = section(text, "Actions and results so far", "Items requiring")
+    assert "Action 2 started at the same point, so this change cannot be separated from it" in rows
+    assert "Action 1 started at the same point" in rows
+    assert "Changes overlap in time" in text
+
+
+def test_p2_hierarchy_mechanism_and_prompts(page):
+    go(page, "actions")
+    assert "New device with usability testing" in page.inner_text("#tiers")
+    page.select_option("#act-type", "intermediate:Software enhancement")
+    assert "An alert that can be dismissed works like a warning" in page.inner_text("#act-type-prompt")
+    go(page, "causes")
+    page.fill("#stmt-cause", "the nurse forgot to call")
+    page.fill("#stmt-effect", "x")
+    lint = page.inner_text("#stmt-lint")
+    assert lint.startswith("Prompt:") and "Check:" not in lint
+    text = report_text(page)
+    assert "Proposed workflow, after the changes" in text and "Result sent to a phone no nurse is holding" in text
+    assert "How it works: Routes the result to the responsible nurse" in text
+
+
+def test_p3_missing_and_incomplete_inputs_do_not_break_the_report(page, base_url):
+    load_modified(page, base_url, 'o.steps.forEach(s => { delete s.ack; delete s.recv; delete s.wait; }); o.duties.forEach(d => { d.claims = {}; delete d.dims; }); o.measures[0].points = o.measures[0].points.slice(0, 1); o.actions[0].start = "Week 99"; o.failures.forEach(f => { f.occ = null; })')
+    text = report_text(page)
+    assert "Executive summary" in text and "{" not in text
+    assert "No role has answered yet for: Acting on the critical lactate result" in text
+    assert "fewer than two data points" in text
+    go(page, "actions")
+    assert "Starts at Week 99, which is not a data point yet" in page.inner_text("#act-list")
+    assert page.errors == []
