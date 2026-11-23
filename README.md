@@ -31,7 +31,7 @@ For fictional or de-identified cases only. Nothing is sent or stored by the page
 
 The page loads nothing from other sites: its fonts are served from this repository (`fonts/`), and there are no analytics, trackers or external scripts. An automated test checks that every request the page makes goes to its own site. The site is hosted on GitHub Pages, which, like any web host, receives the visitor's IP address when the page is requested.
 
-The fonts (Atkinson Hyperlegible, IBM Plex Mono, Newsreader) are licensed under the SIL Open Font License 1.1; the license texts are in `fonts/`.
+The page uses one typeface, Atkinson Hyperlegible, designed by the Braille Institute for legibility. It is licensed under the SIL Open Font License 1.1; the license text is in `fonts/`.
 
 ## Methods
 

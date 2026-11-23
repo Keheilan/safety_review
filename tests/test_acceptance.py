@@ -453,10 +453,10 @@ def test_page_contacts_no_other_host_and_fonts_load(base_url):
             pg.wait_for_selector(f"#s-{stage}:not([hidden])")
         pg.evaluate("document.fonts.ready")
         assert hosts == {host}, hosts
-        for fam in ["16px 'Atkinson Hyperlegible'", "700 16px 'Atkinson Hyperlegible'", "16px 'IBM Plex Mono'", "600 16px Newsreader"]:
+        for fam in ["16px 'Atkinson Hyperlegible'", "700 16px 'Atkinson Hyperlegible'"]:
             assert pg.evaluate(f"document.fonts.check(\"{fam}\")"), fam
         loaded = pg.evaluate("[...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/\"/g, ''))")
-        assert {"Atkinson Hyperlegible", "IBM Plex Mono", "Newsreader"} <= set(loaded)
+        assert set(loaded) == {"Atkinson Hyperlegible"}
         b.close()
 
 
@@ -468,3 +468,21 @@ def test_named_seamline(page):
     assert "Prepared with Seamline" in text and "ICA Safety Review" not in page.content()
     go(page, "save")
     assert "Trace the conditions behind continuity." in page.inner_text("#s-save")
+
+
+def test_one_typeface_and_regular_weight_inputs(page):
+    families = page.evaluate("""[...new Set([...document.querySelectorAll('body *')].filter(e => e.offsetParent !== null || e.tagName === 'text').map(e => getComputedStyle(e).fontFamily.split(',')[0].replace(/["']/g, '').trim()))]""")
+    assert families == ["Atkinson Hyperlegible"], families
+    go(page, "timeline")
+    assert page.eval_on_selector("#st-role", "e => getComputedStyle(e).fontWeight") == "400"
+    assert page.eval_on_selector("#st-what", "e => getComputedStyle(e).fontWeight") == "400"
+
+
+def test_stage_heading_draws_no_box_over_its_label(page):
+    page.focus('nav.stages a[href="#timeline"]')
+    page.keyboard.press("Enter")
+    page.wait_for_selector("#s-timeline:not([hidden])")
+    assert page.evaluate("document.activeElement.tagName") == "H2"
+    assert page.evaluate("getComputedStyle(document.activeElement).outlineStyle") == "none"
+    eb = page.locator("#s-timeline .eyebrow").first.bounding_box(); h2 = page.locator("#s-timeline h2").bounding_box()
+    assert eb["y"] + eb["height"] <= h2["y"] + 1
