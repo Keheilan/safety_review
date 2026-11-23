@@ -224,7 +224,7 @@ a { color: var(--accent); }
         <label for="st-to">Did they hand anything to another role?<select id="st-to"></select></label>
         <label for="st-ack">Was the handoff acknowledged?<select id="st-ack"><option value="unknown">Not known</option><option value="yes">Yes, confirmed back</option><option value="no">No</option></select></label>
       </div>
-      <label for="st-wait">Were they waiting on an earlier step?<select id="st-wait"></select></label>
+      <label for="st-wait">Did this step receive a handoff, or wait on an earlier step? <span class="hint">pick that step; it links the two in the swimlanes</span><select id="st-wait"></select></label>
       <label for="st-belief">What did they believe was true at that moment? <span class="hint">e.g. "The resident had already seen the result"</span><textarea id="st-belief" rows="2"></textarea></label>
       <label for="st-checked">Was that belief checked?<select id="st-checked"><option value="no">No, it was assumed</option><option value="unknown">Not known</option><option value="yes">Yes, it was verified</option></select></label>
       <div class="row"><button type="submit" id="st-save">Add step</button><button type="button" class="quiet" id="st-cancel" hidden>Cancel editing</button></div>
@@ -239,7 +239,7 @@ a { color: var(--accent); }
 <!-- 3 SWIMLANES -->
 <section class="stage" id="s-lanes" data-stage="lanes" hidden>
   <div><p class="eyebrow">Stage 3</p><h2>Swimlanes and dependencies</h2></div>
-  <p class="lede">Each lane is a role. Arrows show handoffs between roles and steps that waited on earlier ones. Select a step to see what it depended on and what depended on it.</p>
+  <p class="lede">Each lane is a role. A handoff arrow ends at the step that received it. If no step in the receiving lane records taking it, the arrow ends at a question mark: that is where something may have been dropped. Select a step to see what it depended on and what depended on it.</p>
   <div class="legend">
     <span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--accent)"></circle></svg>Activity</span>
     <span><svg width="18" height="18"><polygon points="9,1 17,9 9,17 1,9" fill="var(--accent)"></polygon></svg>Decision (yes/no)</span>
@@ -247,7 +247,8 @@ a { color: var(--accent); }
     <span><svg width="18" height="18"><circle cx="9" cy="9" r="6" fill="var(--accent)"></circle><circle cx="9" cy="9" r="8.5" fill="none" stroke="var(--assume)" stroke-width="1.6" stroke-dasharray="3 2"></circle></svg>Unchecked assumption</span>
     <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--accent)" stroke-width="1.6"></line></svg>Acknowledged handoff</span>
     <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--gap)" stroke-width="1.6" stroke-dasharray="5 3"></line></svg>Handoff not acknowledged</span>
-    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1.5 3"></line></svg>Waited on</span>
+    <span><svg width="34" height="10"><line x1="1" y1="5" x2="33" y2="5" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1.5 3"></line></svg>Waited on (no handoff)</span>
+    <span><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="none" stroke="var(--gap)" stroke-width="1.6" stroke-dasharray="2.5 2"></circle><text x="10" y="14" text-anchor="middle" style="font-size:11px" fill="var(--gap)">?</text></svg>No step recorded as receiving the handoff</span>
   </div>
   <div class="lane-frame" id="lane-frame"></div>
   <div class="cols">
@@ -502,6 +503,7 @@ function route() {
   if (h === "measure") renderRun();
 }
 window.addEventListener("hashchange", route);
+let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("s-lanes").hidden) renderLanes(); }, 150); });
 
 // ---------- render all ----------
 function renderAll() {
@@ -642,9 +644,10 @@ function renderLanes() {
   const frame = $("lane-frame");
   const steps = sortedSteps();
   if (!steps.length || !S.roles.length) { frame.innerHTML = '<p class="muted" style="padding:16px">Add roles and steps to draw the swimlanes.</p>'; renderSignals(); return; }
-  const LW = 168, LH = 70, TOP = 34, PPM = 1.9;
+  const LW = 168, LH = 70, TOP = 34;
   let t0 = Math.floor((steps[0].t - 30) / 60) * 60, t1 = Math.ceil((steps[steps.length - 1].t + 40) / 60) * 60;
   if (t1 - t0 < 240) t1 = t0 + 240;
+  const cw = frame.clientWidth, PPM = cw ? Math.max(1.0, Math.min(3, (cw - LW - 26) / (t1 - t0))) : 1.9;
   const W = LW + (t1 - t0) * PPM + 24, H = TOP + S.roles.length * LH + 12;
   const x = t => LW + (t - t0) * PPM, laneIdx = id => S.roles.findIndex(r => r.id === id), y = id => TOP + laneIdx(id) * LH + LH / 2;
   const C = { accent: cssVar("--accent"), assume: cssVar("--assume"), gap: cssVar("--gap"), muted: cssVar("--muted"), line: cssVar("--line"), a: cssVar("--lane-a"), b: cssVar("--lane-b"), surface: cssVar("--surface"), ink: cssVar("--ink") };
@@ -664,18 +667,33 @@ function renderLanes() {
   const related = new Set();
   if (selected) { const s = S.steps.find(z => z.id === selected); if (s) { related.add(s.id); if (s.wait) related.add(s.wait); S.steps.forEach(z => { if (z.wait === s.id) related.add(z.id); }); } }
   const dim = id => selected && !related.has(id) ? ' opacity="0.35"' : "";
+  // A handoff connects to the step in the receiving lane that recorded receiving it (that step "waited on" the sender).
+  const receiverOf = s => s.to ? steps.find(z => z.wait === s.id && z.role === s.to) : null;
   steps.forEach(s => {
     if (!s.wait) return;
     const w = S.steps.find(z => z.id === s.wait); if (!w || laneIdx(w.role) < 0 || laneIdx(s.role) < 0) return;
+    if (w.to && w.to === s.role) return; // already drawn as the handoff arrow
     const x1 = x(w.t), y1 = y(w.role), x2 = x(s.t), y2 = y(s.role);
     const dx = Math.max(24, (x2 - x1) / 2);
-    svg += '<path d="M' + (x1 + 8) + "," + y1 + " C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + (x2 - 10) + "," + y2 + '" fill="none" stroke="' + C.muted + '" stroke-width="1.4" stroke-dasharray="1.5 3" marker-end="url(#arr-wait)"' + (selected && !(related.has(s.id) && related.has(w.id)) ? ' opacity="0.25"' : "") + "/>";
+    svg += '<path d="M' + (x1 + 10) + "," + y1 + " C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + (x2 - 14) + "," + y2 + '" fill="none" stroke="' + C.muted + '" stroke-width="1.4" stroke-dasharray="1.5 3" marker-end="url(#arr-wait)"' + (selected && !(related.has(s.id) && related.has(w.id)) ? ' opacity="0.25"' : "") + "/>";
   });
   steps.forEach(s => {
     if (!s.to || laneIdx(s.to) < 0 || laneIdx(s.role) < 0) return;
-    const x1 = x(s.t), y1 = y(s.role), y2 = y(s.to), ok = s.ack === "yes";
-    const x2 = x1 + 26, dir = y2 > y1 ? 1 : -1;
-    svg += '<path d="M' + x1 + "," + (y1 + dir * 9) + " C" + (x1 + 4) + "," + ((y1 + y2) / 2) + " " + (x2 - 4) + "," + ((y1 + y2) / 2) + " " + x2 + "," + (y2 - dir * 6) + '" fill="none" stroke="' + (ok ? C.accent : C.gap) + '" stroke-width="1.6"' + (ok ? "" : ' stroke-dasharray="5 3"') + ' marker-end="url(#' + (ok ? "arr-ok" : "arr-gap") + ')"' + dim(s.id) + "/>";
+    const ok = s.ack === "yes", col = ok ? C.accent : C.gap, dash = ok ? "" : ' stroke-dasharray="5 3"', mk = ok ? "arr-ok" : "arr-gap";
+    const r = receiverOf(s), x1 = x(s.t), y1 = y(s.role), y2 = y(s.to), dir = y2 > y1 ? 1 : -1;
+    if (r) {
+      const x2 = x(r.t), op = selected && !(related.has(s.id) && related.has(r.id)) ? ' opacity="0.25"' : "";
+      if (x2 - x1 < 34) {
+        svg += '<path d="M' + x1 + "," + (y1 + dir * 11) + " C" + x1 + "," + ((y1 + y2) / 2) + " " + x2 + "," + ((y1 + y2) / 2) + " " + x2 + "," + (y2 - dir * 14) + '" fill="none" stroke="' + col + '" stroke-width="1.7"' + dash + ' marker-end="url(#' + mk + ')"' + op + "/>";
+      } else {
+        svg += '<path d="M' + x1 + "," + (y1 + dir * 11) + " C" + x1 + "," + y2 + " " + (x1 + 10) + "," + y2 + " " + (x2 - 15) + "," + y2 + '" fill="none" stroke="' + col + '" stroke-width="1.7"' + dash + ' marker-end="url(#' + mk + ')"' + op + "/>";
+      }
+    } else {
+      // Nothing in the receiving lane records taking this handoff: end at an open "?" marker so the gap is visible.
+      const xm = x1 + 34, tip = "Handed to " + roleName(s.to) + (ok ? " and acknowledged" : "") + ", but no step is recorded as receiving it";
+      svg += '<g' + dim(s.id) + '><path d="M' + x1 + "," + (y1 + dir * 11) + " C" + x1 + "," + y2 + " " + (x1 + 6) + "," + y2 + " " + (xm - 12) + "," + y2 + '" fill="none" stroke="' + col + '" stroke-width="1.7"' + dash + ' marker-end="url(#' + mk + ')"/>';
+      svg += '<circle cx="' + xm + '" cy="' + y2 + '" r="9" fill="' + C.surface + '" stroke="' + col + '" stroke-width="1.6" stroke-dasharray="2.5 2"/><text x="' + xm + '" y="' + (y2 + 4) + '" text-anchor="middle" style="font-family:var(--f-mono);font-size:11px;font-weight:500" fill="' + col + '">?</text><title>' + esc(tip) + "</title></g>";
+    }
   });
   steps.forEach((s, i) => {
     if (laneIdx(s.role) < 0) return;
@@ -719,6 +737,7 @@ function renderSignals() {
   const ul = $("signal-list"); const items = [];
   unchecked().forEach(s => items.push('<li class="item"><span class="chip assume">Unchecked assumption · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " believed: " + esc(s.belief) + "</p></li>"));
   unacked().forEach(s => items.push('<li class="item"><span class="chip gap">Handoff not acknowledged · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.what) + "</p></li>"));
+  sortedSteps().filter(s => s.to && !S.steps.some(z => z.wait === s.id && z.role === s.to)).forEach(s => items.push('<li class="item"><span class="chip gap">No step recorded as receiving it · step ' + stepNo(s.id) + "</span><p>" + esc(roleName(s.role)) + " → " + esc(roleName(s.to)) + ": " + esc(s.what) + "</p></li>"));
   unclaimed().forEach(d => items.push('<li class="item"><span class="chip gap">Unclaimed responsibility</span><p>' + esc(d.name) + "</p></li>"));
   ul.innerHTML = items.length ? items.join("") : '<li class="muted">No signals yet.</li>';
 }
